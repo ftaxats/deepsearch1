@@ -48,3 +48,32 @@ export async function analyzeICP(dossierText: string, query?: string, context?: 
 
   return { stream: stream.value };
 }
+
+export async function analyzeWebsiteIntelligence(
+  url: string,
+  options?: {
+    intelligenceTypes?: ('pricing' | 'team' | 'customers' | 'products' | 'competitors')[];
+    includeCompetitorAnalysis?: boolean;
+    context?: { query: string; response: string }[];
+  },
+  apiKey?: string
+) {
+  'use server';
+  const stream = createStreamableValue<SearchEvent>();
+
+  const firecrawl = new FirecrawlClient(apiKey);
+  const searchEngine = new SearchEngine(firecrawl);
+
+  (async () => {
+    try {
+      await searchEngine.analyzeWebsiteIntelligence(url, (event) => {
+        stream.update(event);
+      }, options);
+      stream.done();
+    } catch (error) {
+      stream.error(error);
+    }
+  })();
+
+  return { stream: stream.value };
+}

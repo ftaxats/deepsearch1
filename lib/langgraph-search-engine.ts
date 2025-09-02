@@ -3,7 +3,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { FirecrawlClient } from './firecrawl';
 import { ContextProcessor } from './context-processor';
-import { SEARCH_CONFIG, MODEL_CONFIG } from './config';
+import { SEARCH_CONFIG, CRAWL_CONFIG, MODEL_CONFIG } from './config';
 
 // Event types remain the same for frontend compatibility
 export type SearchPhase = 
@@ -199,6 +199,147 @@ export class LangGraphSearchEngine {
     this.graph = this.buildGraph();
   }
 
+  // NEW: Comprehensive website intelligence analysis using enhanced Firecrawl crawling
+  async analyzeWebsiteIntelligence(
+    url: string,
+    onEvent: (event: SearchEvent) => void,
+    options?: { 
+      intelligenceTypes?: ('pricing' | 'team' | 'customers' | 'products' | 'competitors')[];
+      includeCompetitorAnalysis?: boolean;
+      context?: { query: string; response: string }[];
+    }
+  ): Promise<void> {
+    try {
+      onEvent({ type: 'phase-update', phase: 'understanding', message: 'Initializing comprehensive website intelligence gathering...' });
+      
+      // Extract domain from URL
+      const domain = new URL(url).hostname.replace('www.', '');
+      onEvent({ type: 'thinking', message: `🎯 Target: ${domain} - Beginning multi-phase intelligence operation` });
+
+      // Phase 1: Website Structure Discovery
+      onEvent({ type: 'phase-update', phase: 'planning', message: 'Mapping website architecture and discovering intelligence sources...' });
+      
+      const siteMap = await this.firecrawl.mapWebsiteStructure(url);
+      if (siteMap.success) {
+        const { categorizedUrls, totalUrls } = siteMap;
+        onEvent({ 
+          type: 'thinking', 
+          message: `📊 Architecture Discovery: ${totalUrls} pages mapped across ${Object.keys(categorizedUrls).length} categories` 
+        });
+      }
+
+      // Phase 2: Targeted Intelligence Gathering
+      onEvent({ type: 'phase-update', phase: 'searching', message: 'Conducting systematic intelligence extraction...' });
+      
+      const intelligenceTypes = options?.intelligenceTypes || ['pricing', 'team', 'customers', 'products'];
+      const allSources: Source[] = [];
+
+      for (const type of intelligenceTypes) {
+        onEvent({ type: 'thinking', message: `🔍 Phase ${intelligenceTypes.indexOf(type) + 1}/${intelligenceTypes.length}: Gathering ${type} intelligence...` });
+        
+        const intelligence = await this.firecrawl.gatherWebsiteIntelligence(url, type);
+        
+        if (intelligence.success && intelligence.rawData) {
+          const sources = intelligence.rawData.map((page: any) => ({
+            url: page.url,
+            title: page.title || `${domain} - ${type.toUpperCase()}`,
+            content: page.markdown || '',
+            quality: 0.9,
+            summary: `${type} intelligence extracted via comprehensive crawling`,
+            metadata: {
+              intelligenceType: type,
+              structuredData: intelligence.structuredData,
+              crawlSummary: intelligence.summary
+            }
+          }));
+          
+          allSources.push(...sources);
+          onEvent({ 
+            type: 'found', 
+            sources: sources, 
+            query: `${type} intelligence from ${domain}` 
+          });
+          
+                      onEvent({ 
+              type: 'thinking', 
+              message: `✅ ${type} Intelligence: ${sources.length} pages analyzed, ${intelligence.summary?.scrapedPages || 0} pages scraped` 
+            });
+        } else {
+          onEvent({ 
+            type: 'thinking', 
+            message: `⚠️ Limited ${type} intelligence found - continuing with other categories` 
+          });
+        }
+      }
+
+      // Phase 3: Competitor Landscape Analysis (if requested)
+      if (options?.includeCompetitorAnalysis) {
+        onEvent({ type: 'phase-update', phase: 'analyzing', message: 'Analyzing competitive landscape and market positioning...' });
+        
+        try {
+          const competitorAnalysis = await this.firecrawl.gatherWebsiteIntelligence(url, 'competitors');
+          
+          if (competitorAnalysis.success) {
+            // Extract competitor domains from structured data
+            const competitorData = competitorAnalysis.structuredData;
+            // This would typically extract competitor URLs from the content
+            // For now, we'll include the competitive intelligence in our sources
+            
+            const competitorSources = (competitorAnalysis.rawData || []).map((page: any) => ({
+              url: page.url,
+              title: page.title || `${domain} - Competitive Intelligence`,
+              content: page.markdown || '',
+              quality: 0.95,
+              summary: 'Competitive positioning and market analysis'
+            }));
+            
+            allSources.push(...competitorSources);
+            onEvent({ 
+              type: 'thinking', 
+              message: `🏆 Competitive Analysis: ${competitorSources.length} intelligence sources analyzed` 
+            });
+          }
+        } catch (error) {
+          onEvent({ 
+            type: 'thinking', 
+            message: `⚠️ Competitor analysis encountered limitations - focusing on direct intelligence` 
+          });
+        }
+      }
+
+      // Phase 4: Generate Comprehensive Intelligence Report
+      onEvent({ type: 'phase-update', phase: 'synthesizing', message: 'Synthesizing comprehensive intelligence report...' });
+      
+      const query = `Comprehensive website intelligence analysis for ${domain}`;
+      
+      const contentCb = (chunk: string) => {
+        onEvent({ type: 'content-chunk', chunk });
+      };
+
+      const finalReport = await this.generateStreamingAnswer(query, allSources, contentCb, options?.context);
+
+      onEvent({ 
+        type: 'final-result', 
+        content: finalReport, 
+        sources: allSources,
+        followUpQuestions: [
+          `Expand analysis to include ${intelligenceTypes.length < 5 ? 'competitor landscape' : 'deeper customer intelligence'}`,
+          `Generate specific ICP profiles based on this intelligence`,
+          `Create actionable sales strategies from these findings`
+        ]
+      });
+      
+      onEvent({ type: 'phase-update', phase: 'complete', message: `Intelligence mission complete: ${allSources.length} sources analyzed` });
+      
+    } catch (error) {
+      onEvent({
+        type: 'error',
+        error: error instanceof Error ? error.message : 'Website intelligence analysis failed',
+        errorType: 'unknown',
+      });
+    }
+  }
+
   // Enhanced: Analyze dossier + conduct targeted website crawling for ICP research
   async analyzeDossier(
     dossierText: string,
@@ -300,100 +441,143 @@ Focus on extracting clean domains (example.com format) from the text.`),
     }
   }
 
-  // Systematically crawl a competitor website
+  // Enhanced: Comprehensive website intelligence gathering using search-first discovery
   private async crawlCompetitorWebsite(domain: string, onEvent: (event: SearchEvent) => void): Promise<Source[]> {
     const sources: Source[] = [];
     
     try {
-      // Common paths to crawl for competitor intelligence
-      const targetPaths = [
-        '/sitemap.xml',
-        '/customers',
-        '/case-studies', 
-        '/testimonials',
-        '/pricing',
-        '/about',
-        '/team',
-        '/partners',
-        '/integrations',
-        '/resources',
-        '/blog',
-        '/press',
-        '/newsroom'
-      ];
+      onEvent({ type: 'thinking', message: `🔍 Starting search-based intelligence discovery for ${domain}...` });
 
-      // First, try to get sitemap
-      try {
-        const sitemapResult = await this.firecrawl.scrapeUrl(`https://${domain}/sitemap.xml`, SEARCH_CONFIG.SCRAPE_TIMEOUT);
-        
-        if (sitemapResult.success && sitemapResult.markdown) {
-          sources.push({
-            url: `https://${domain}/sitemap.xml`,
-            title: `${domain} - Sitemap`,
-            content: sitemapResult.markdown,
-            quality: 0.9
-          });
-          
-          onEvent({ type: 'thinking', message: `✓ Found sitemap for ${domain}` });
-        }
-      } catch {
-        onEvent({ type: 'thinking', message: `⚠ No sitemap found for ${domain}` });
-      }
-
-      // Crawl key pages for customer intelligence
-      for (const path of targetPaths.slice(1, 6)) { // Limit to avoid rate limits
+      // Use search-first intelligence gathering for different aspects
+      const intelligenceTypes = ['pricing', 'team', 'customers', 'products'] as const;
+      
+      for (const intelligenceType of intelligenceTypes) {
         try {
-          const result = await this.firecrawl.scrapeUrl(`https://${domain}${path}`, SEARCH_CONFIG.SCRAPE_TIMEOUT);
+          onEvent({ type: 'thinking', message: `🎯 Discovering ${intelligenceType} pages for ${domain} via search...` });
           
-          if (result.success && result.markdown && result.markdown.length > 200) {
-            sources.push({
-              url: `https://${domain}${path}`,
-              title: `${domain} - ${path.replace('/', '').replace('-', ' ').toUpperCase()}`,
-              content: result.markdown,
-              quality: path.includes('customer') || path.includes('case') ? 0.95 : 0.8
-            });
+          const intelligence = await this.firecrawl.gatherWebsiteIntelligence(`https://${domain}`, intelligenceType);
+          
+          if (intelligence.success && intelligence.rawData) {
+            // Convert discovered and scraped data to sources
+            const crawledSources = intelligence.rawData.map((page: any) => ({
+              url: page.url,
+              title: page.title || `${domain} - ${intelligenceType.toUpperCase()}`,
+              content: page.markdown || page.content || '',
+              quality: 0.9,
+              summary: `${intelligenceType} intelligence discovered via search from ${domain}`,
+              metadata: {
+                intelligenceType,
+                discoveryMethod: 'search',
+                crawledAt: new Date().toISOString(),
+                structuredData: intelligence.structuredData,
+                discoveredUrls: intelligence.discoveredUrls || []
+              }
+            }));
             
-            onEvent({ type: 'thinking', message: `✓ Crawled ${domain}${path}` });
+            sources.push(...crawledSources);
+            
+            onEvent({ 
+              type: 'thinking', 
+              message: `✅ Search discovered ${intelligence.discoveredUrls?.length || 0} ${intelligenceType} URLs, scraped ${crawledSources.length} pages from ${domain}` 
+            });
+          } else {
+            onEvent({ 
+              type: 'thinking', 
+              message: `⚠️ No ${intelligenceType} pages found via search for ${domain}` 
+            });
           }
-        } catch {
-          // Continue with other paths if one fails
-          continue;
+        } catch (error) {
+          onEvent({ 
+            type: 'thinking', 
+            message: `⚠️ ${intelligenceType} search discovery failed for ${domain}: ${error instanceof Error ? error.message : 'Unknown error'}` 
+          });
         }
         
-        // Small delay to be respectful to target sites
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Small delay between intelligence gathering operations
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      // Use Firecrawl search within the domain for customer-related content
+      // Enhanced search for general competitive intelligence if we haven't found much
+      if (sources.length < 5) {
+        onEvent({ type: 'thinking', message: `🔄 Searching for additional competitive intelligence on ${domain}...` });
+        
+        try {
+          // Use comprehensive search to find any valuable pages
+          const comprehensiveIntel = await this.firecrawl.gatherWebsiteIntelligence(`https://${domain}`, 'comprehensive');
+          
+          if (comprehensiveIntel.success && comprehensiveIntel.rawData) {
+            const additionalSources = comprehensiveIntel.rawData
+              .filter((page: any) => !sources.some(s => s.url === page.url)) // Avoid duplicates
+              .map((page: any) => ({
+                url: page.url,
+                title: page.title || `${domain} - General Intelligence`,
+                content: page.markdown || '',
+                quality: 0.8,
+                summary: 'Additional intelligence discovered via comprehensive search',
+                metadata: {
+                  discoveryMethod: 'comprehensive_search',
+                  crawledAt: new Date().toISOString()
+                }
+              }));
+            
+            sources.push(...additionalSources);
+            onEvent({ 
+              type: 'thinking', 
+              message: `✅ Comprehensive search found ${additionalSources.length} additional pages from ${domain}` 
+            });
+          }
+        } catch (error) {
+          onEvent({ type: 'thinking', message: `⚠️ Comprehensive search failed for ${domain}` });
+        }
+      }
+
+      // Final targeted search for high-value competitor content
       try {
-        const customerSearch = await this.firecrawl.search(`site:${domain} customers OR "case study" OR testimonial OR "success story"`, {
-          limit: 3,
+        onEvent({ type: 'thinking', message: `🎯 Final targeted search for competitive intelligence on ${domain}...` });
+        
+        const targetedSearch = await this.firecrawl.search(`site:${domain} (customers OR "case study" OR testimonial OR "success story" OR pricing OR leadership OR about OR products)`, {
+          limit: 8,
           scrapeOptions: { formats: ['markdown'] }
         });
         
-        if (customerSearch.data) {
-          customerSearch.data.forEach((result: { url: string; title?: string; markdown?: string }) => {
-            if (result.markdown && result.markdown.length > 200) {
-              sources.push({
-                url: result.url,
-                title: result.title || `${domain} - Customer Content`,
-                content: result.markdown,
-                quality: 0.9
-              });
-            }
-          });
+        if (targetedSearch.data) {
+          const searchSources = targetedSearch.data
+            .filter((result: any) => result.markdown && result.markdown.length > CRAWL_CONFIG.MIN_PAGE_CONTENT_LENGTH)
+            .filter((result: any) => !sources.some(s => s.url === result.url)) // Avoid duplicates
+            .map((result: any) => ({
+              url: result.url,
+              title: result.title || `${domain} - Targeted Search Result`,
+              content: result.markdown,
+              quality: 0.85,
+              summary: 'High-value content found via targeted competitive search',
+              metadata: {
+                discoveryMethod: 'targeted_search',
+                crawledAt: new Date().toISOString()
+              }
+            }));
           
-          onEvent({ type: 'thinking', message: `✓ Found ${customerSearch.data.length} customer-related pages on ${domain}` });
+          sources.push(...searchSources);
+          onEvent({ type: 'thinking', message: `🎯 Targeted search discovered ${searchSources.length} additional high-value pages from ${domain}` });
         }
-      } catch {
-        onEvent({ type: 'thinking', message: `⚠ Customer search failed for ${domain}` });
+      } catch (error) {
+        onEvent({ type: 'thinking', message: `⚠️ Targeted search failed for ${domain}` });
       }
 
     } catch (error) {
-      onEvent({ type: 'thinking', message: `✗ Failed to crawl ${domain}: ${error instanceof Error ? error.message : 'Unknown error'}` });
+      onEvent({ type: 'thinking', message: `❌ Search-based intelligence discovery failed for ${domain}: ${error instanceof Error ? error.message : 'Unknown error'}` });
     }
 
-    return sources;
+    // Remove duplicates by URL and sort by quality
+    const uniqueSources = sources
+      .filter((source, index, self) => index === self.findIndex(s => s.url === source.url))
+      .sort((a, b) => (b.quality || 0) - (a.quality || 0));
+
+    onEvent({ 
+      type: 'thinking', 
+      message: `🏁 Search-based intelligence discovery complete for ${domain}: ${uniqueSources.length} unique pages discovered and analyzed` 
+    });
+
+    return uniqueSources;
   }
 
   getInitialSteps(): SearchStep[] {

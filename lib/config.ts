@@ -20,10 +20,57 @@ export const SEARCH_CONFIG = {
   
   // Timeouts
   SCRAPE_TIMEOUT: 15000,         // Timeout for scraping operations (ms)
+  CRAWL_TIMEOUT: 60000,          // Timeout for comprehensive crawling operations (ms)
   
   // Performance
   SOURCE_ANIMATION_DELAY: 50,    // Delay between source animations (ms) - reduced from 150
   PARALLEL_SUMMARY_GENERATION: true, // Generate summaries in parallel
+} as const;
+
+// Enhanced Crawling Configuration
+export const CRAWL_CONFIG = {
+  // Website Intelligence Gathering
+  DEFAULT_CRAWL_LIMIT: 50,       // Default number of pages to crawl per website
+  MAX_CRAWL_LIMIT: 100,          // Maximum pages to crawl for comprehensive analysis
+  INTELLIGENCE_CRAWL_LIMIT: 20,  // Pages per intelligence type (pricing, team, etc.)
+  
+  // Competitor Analysis
+  MAX_COMPETITORS_TO_ANALYZE: 3, // Maximum competitors to analyze in parallel
+  COMPETITOR_CRAWL_DELAY: 1000,  // Delay between competitor crawls (ms)
+  
+  // Content Quality Thresholds
+  MIN_PAGE_CONTENT_LENGTH: 200,  // Minimum content length for page to be valuable
+  HIGH_VALUE_CONTENT_LENGTH: 1000, // Content length that indicates high-value page
+  
+  // Intelligence Type Priorities
+  INTELLIGENCE_PRIORITIES: {
+    pricing: 0.95,               // Highest priority for business intelligence
+    customers: 0.90,             // High priority for customer intelligence
+    team: 0.85,                  // High priority for team intelligence
+    products: 0.80,              // Medium-high priority for product intelligence
+    competitors: 0.75            // Medium priority for competitive intelligence
+  },
+  
+  // Search-Based Discovery Settings
+  SEARCH_QUERIES_PER_TYPE: 3,   // Number of search queries per intelligence type
+  URL_DISCOVERY_LIMIT: 20,      // Maximum URLs to discover per intelligence type
+  RELEVANCE_SCORE_THRESHOLD: 0.4, // Minimum relevance score for discovered URLs
+  
+  // Content Filtering (for excluding low-value content)
+  EXCLUDE_PATTERNS: [
+    'blog', 'news', 'press', 'careers',
+    'support', 'help', 'docs', 'legal',
+    'privacy', 'terms', 'cookie'
+  ],
+  
+  // Website Mapping
+  SITEMAP_DISCOVERY_LIMIT: 100, // Maximum URLs to discover via sitemap
+  URL_CATEGORIZATION_ENABLED: true, // Enable automatic URL categorization
+  
+  // Structured Data Extraction
+  ENABLE_STRUCTURED_EXTRACTION: true, // Enable schema-based data extraction
+  MAX_CONTENT_FOR_EXTRACTION: 5000,  // Maximum content length for LLM analysis
+  EXTRACTION_BATCH_SIZE: 10,          // Number of pages to process in each extraction batch
 } as const;
 
 // You can also export individual configs for different components
