@@ -372,7 +372,7 @@ Focus on extracting clean domains (example.com format) from the text.`),
         });
         
         if (customerSearch.data) {
-          customerSearch.data.forEach((result: any) => {
+          customerSearch.data.forEach((result: { url: string; title?: string; markdown?: string }) => {
             if (result.markdown && result.markdown.length > 200) {
               sources.push({
                 url: result.url,
