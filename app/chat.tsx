@@ -201,6 +201,18 @@ export function Chat() {
   const [pendingQuery, setPendingQuery] = useState<string>('');
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
+  // Intelligence gathering suggestions
+  const intelligenceSuggestions = [
+    "Research [Company Name] - comprehensive competitive intelligence",
+    "Analyze [Product Name] - market positioning and features",
+    "Deep dive into [Industry] - market trends and key players",
+    "Competitive analysis of [Company] vs [Competitor]",
+    "Website intelligence gathering for [Company Name]",
+    "Social media presence analysis of [Company Name]",
+    "Customer intelligence research for [Company Name]",
+    "Technical architecture analysis of [Company Name]"
+  ];
+
   const handleSelectSuggestion = (suggestion: string) => {
     setInput(suggestion);
     setShowSuggestions(false);
@@ -442,8 +454,10 @@ export function Chat() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
     if (!input.trim() || isSearching) return;
     setShowSuggestions(false);
 
@@ -483,68 +497,56 @@ export function Chat() {
   return (
     <div className="flex flex-col flex-1">
       {messages.length === 0 ? (
-        // Center input when no messages
-        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-          <div className="w-full max-w-4xl">
-            <form onSubmit={handleSubmit}>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onFocus={() => {
-                    if (!hasShownSuggestions && messages.length === 0) {
-                      setShowSuggestions(true);
-                      setHasShownSuggestions(true);
-                    }
-                  }}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  placeholder="Enter query..."
-                  className="w-full h-14 rounded-full border border-zinc-200 bg-white pl-6 pr-16 text-base ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:ring-offset-zinc-950 dark:placeholder:text-zinc-400 dark:focus-visible:ring-orange-400 shadow-sm"
-                  disabled={isSearching}
-                />
-                <button
-                  type="submit"
-                  disabled={isSearching || !input.trim()}
-                  className="absolute right-2 top-2 h-10 w-10 bg-orange-500 hover:bg-orange-600 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center"
-                >
-                  {isSearching ? (
-                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  )}
-                </button>
-                
-                {/* Suggestions dropdown - only show on initial load */}
-                {showSuggestions && !input && messages.length === 0 && (
-                  <div className="absolute top-full mt-2 w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-                    <div className="p-2">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2 font-medium">Try searching for:</p>
-                      {SUGGESTED_QUERIES.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          onClick={() => handleSelectSuggestion(suggestion)}
-                          className="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg transition-colors text-sm text-gray-700 dark:text-gray-300"
-                        >
-                          <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            <span className="line-clamp-1">{suggestion}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+        <div className="flex flex-col space-y-4 w-full max-w-4xl">
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl font-bold text-gray-900">
+              🔍 Deep Research Intelligence
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Comprehensive website intelligence gathering and competitive analysis powered by AI
+            </p>
+          </div>
+
+          {!hasShownSuggestions && (
+            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                🎯 Intelligence Gathering Examples
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {intelligenceSuggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                    className="text-left p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors text-sm text-gray-700"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
               </div>
-            </form>
+              <p className="text-sm text-gray-500 mt-3">
+                💡 Simply provide a company name, website URL, or product name to start comprehensive intelligence gathering
+              </p>
+            </div>
+          )}
+
+          <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
+            <div className="flex space-x-4">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Enter company name, website URL, or product for intelligence gathering..."
+                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={!input.trim() || isSearching}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSearching ? 'Researching...' : '🔍 Research'}
+              </button>
+            </div>
           </div>
         </div>
       ) : (

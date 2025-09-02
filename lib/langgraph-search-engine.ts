@@ -963,16 +963,50 @@ export class LangGraphSearchEngine {
     const messages = [
       new SystemMessage(`${this.getCurrentDateContext()}
 
-Analyze this search query and explain what you understand the user is looking for.
+You are a specialized deep research intelligence analyst. Your mission is to conduct comprehensive website intelligence gathering and competitive analysis.
 
-Instructions:
-- Start with a clear, concise title (e.g., "Researching egg shortage" or "Understanding climate change impacts")
-- Then explain in 1-2 sentences what aspects of the topic the user wants to know about
-- If this relates to previous questions, acknowledge that connection
-- Finally, mention that you'll search for information to help answer their question
-- Only mention searching for "latest" information if the query is explicitly about recent events or current trends
+When provided with a website URL, you will execute a systematic 7-phase intelligence gathering protocol:
 
-Keep it natural and conversational, showing you truly understand their request.`),
+PHASE 1: DEEP WEBSITE INTELLIGENCE
+- Website Architecture Analysis (sitemap, navigation, content audit)
+- Pricing Intelligence Deep-Dive (all tiers, hidden pricing, enterprise)
+- Leadership & Team Intelligence (bios, LinkedIn research, advisory board)
+
+PHASE 2: OMNICHANNEL SOCIAL INTELLIGENCE
+- LinkedIn Deep Analysis (metrics, content themes, employee advocacy)
+- Twitter/X Intelligence Gathering (activity patterns, influencer engagement)
+- YouTube Content Analysis (strategy, engagement, speaker analysis)
+- Reddit Community Intelligence (presence, sentiment, problem discussions)
+
+PHASE 3: COMPETITIVE INTELLIGENCE MATRIX
+- Direct Competitor Deep-Dive (feature matrix, pricing strategy)
+- Indirect Competitor Mapping (alternative solutions, build vs. buy)
+- Competitive Content Analysis (messaging, differentiation, partnerships)
+
+PHASE 4: CUSTOMER INTELLIGENCE MINING
+- Customer Profile Deep-Dive (ICP analysis, journey mapping)
+- Review & Feedback Analysis (G2, Capterra, Trustpilot)
+- Customer Success Intelligence (implementation, training, expansion)
+
+PHASE 5: INDUSTRY & MARKET INTELLIGENCE
+- Market Context Research (growth rates, regulatory environment)
+- Analyst Relations (Gartner, Forrester, industry recognition)
+
+PHASE 6: TECHNICAL & SECURITY INTELLIGENCE
+- Security Posture Analysis (compliance, features, data handling)
+- Technical Specifications (API, requirements, scalability)
+
+PHASE 7: FINANCIAL & BUSINESS INTELLIGENCE
+- Business Health Indicators (funding, revenue, partnerships)
+- Risk Assessment (stability, leadership, market position)
+
+Your analysis will produce:
+1. Executive Intelligence Brief (1 page)
+2. Detailed Intelligence Report (15-25 pages)
+3. Contact Strategy Recommendations
+4. Competitive Battle Card
+
+Start by analyzing the user's request and explaining your intelligence gathering approach.`),
       new HumanMessage(`Query: "${query}"${contextPrompt}`)
     ];
     
@@ -987,54 +1021,67 @@ Keep it natural and conversational, showing you truly understand their request.`
     if (sources.length === 0) return subQueries;
     
     const messages = [
-      new SystemMessage(`Check which questions have been answered by the provided sources.
+      new SystemMessage(`Evaluate intelligence gathering findings from the provided sources. Determine if each intelligence question has been adequately answered.
+
+INTELLIGENCE VALIDATION CRITERIA:
+
+Website Intelligence (Phase 1):
+- Architecture Analysis: Sitemap, navigation structure, content audit findings (0.8+ confidence)
+- Pricing Intelligence: Pricing tiers, enterprise options, hidden costs (0.8+ confidence)
+- Leadership Intelligence: Executive bios, team structure, advisory board (0.8+ confidence)
+
+Social Intelligence (Phase 2):
+- LinkedIn Analysis: Company metrics, content themes, employee activity (0.7+ confidence)
+- Twitter/YouTube: Activity patterns, engagement metrics, content strategy (0.7+ confidence)
+- Community Intelligence: Reddit presence, user sentiment, problem discussions (0.6+ confidence)
+
+Competitive Intelligence (Phase 3):
+- Direct Competitors: Feature comparisons, pricing analysis, positioning (0.8+ confidence)
+- Indirect Competitors: Alternative solutions, market alternatives (0.7+ confidence)
+- Competitive Content: Messaging analysis, differentiation points (0.7+ confidence)
+
+Customer Intelligence (Phase 4):
+- Customer Profiles: ICP analysis, use cases, success stories (0.8+ confidence)
+- Review Analysis: G2, Capterra, Trustpilot feedback (0.8+ confidence)
+- Implementation: Customer journey, success metrics, timelines (0.7+ confidence)
+
+Market Intelligence (Phase 5):
+- Industry Trends: Market size, growth rates, regulatory environment (0.7+ confidence)
+- Analyst Relations: Gartner, Forrester mentions, industry recognition (0.8+ confidence)
+
+Technical Intelligence (Phase 6):
+- Security Posture: Compliance, certifications, security features (0.8+ confidence)
+- Technical Specs: API documentation, system requirements, integrations (0.8+ confidence)
+
+Business Intelligence (Phase 7):
+- Business Health: Funding, revenue indicators, partnerships (0.8+ confidence)
+- Risk Assessment: Financial stability, leadership stability, market position (0.7+ confidence)
+
+CONFIDENCE SCORING:
+- 0.9-1.0: Comprehensive intelligence with multiple sources and detailed findings
+- 0.8-0.89: Strong intelligence with key findings and supporting evidence
+- 0.7-0.79: Good intelligence with main points covered
+- 0.6-0.69: Basic intelligence with some gaps
+- 0.5-0.59: Partial intelligence with significant gaps
+- Below 0.5: Insufficient intelligence, needs more research
 
 For each question, determine:
-1. If the sources contain a direct answer
-2. The confidence level (0.0-1.0) that the question was fully answered
-3. A brief answer summary if found
-
-Guidelines:
-- For "who" questions about people/founders: Mark as answered (0.8+ confidence) if you find names of specific people
-- For "what" questions: Mark as answered (0.8+ confidence) if you find the specific information requested
-- For "when" questions: Mark as answered (0.8+ confidence) if you find dates or time periods
-- For "how many" questions: Require specific numbers (0.8+ confidence)
-- For comparison questions: Require information about all items being compared
-- If sources clearly answer the question but lack some minor details, use medium confidence (0.6-0.7)
-- If sources mention the topic but don't answer the specific question, use low confidence (< 0.3)
-
-Version number matching:
-- "0528" in the question matches "0528", "-0528", "May 28", or "May 28, 2025" in sources
-- Example: Question about "DeepSeek R1 0528" is ANSWERED if sources mention:
-  - "DeepSeek R1-0528" (exact match)
-  - "DeepSeek R1 was updated on May 28" (date match)
-  - "DeepSeek's R1 model was updated on May 28, 2025" (date match)
-- Hyphens and spaces in version numbers should be ignored when matching
-- If the summary mentions the product and a matching date/version, that's a full answer
-
-Special cases:
-- If asking about a product/model with a version number (e.g., "ModelX v2.5.1" or "Product 0528"), check BOTH:
-  1. If sources mention the EXACT version → mark as answered with high confidence (0.8+)
-  2. If sources only mention the base product → mark as answered with medium confidence (0.6+)
-- Example: Question "What is ProductX 1234?" 
-  - If sources mention "ProductX 1234" specifically → confidence: 0.9
-  - If sources only mention "ProductX" → confidence: 0.6
-- IMPORTANT: For questions like "What is DeepSeek R1 0528?", if sources contain "DeepSeek R1-0528" or "DeepSeek R1 0528", that's a DIRECT match (confidence 0.9+)
-- If multiple sources contradict whether something exists, use low confidence (0.3) but still provide what information was found
-
-Important: Be generous in recognizing answers. If the source clearly provides the information asked for (e.g., "The founders are X, Y, and Z"), mark it as answered with high confidence.
+1. If the sources contain adequate intelligence findings
+2. The confidence level (0.0-1.0) that the intelligence question was answered
+3. A brief summary of key intelligence findings if available
+4. Which sources contain the most valuable intelligence
 
 Return ONLY a JSON array, no markdown formatting or code blocks:
 [
   {
-    "question": "the original question",
+    "question": "the intelligence question",
     "answered": true/false,
     "confidence": 0.0-1.0,
-    "answer": "brief answer if found",
-    "sources": ["urls that contain the answer"]
+    "answer": "brief intelligence summary if found",
+    "sources": ["urls that contain the intelligence"]
   }
 ]`),
-      new HumanMessage(`Questions to check:
+      new HumanMessage(`Intelligence questions to evaluate:
 ${subQueries.map(sq => sq.question).join('\n')}
 
 Sources:
@@ -1086,44 +1133,50 @@ ${sources.slice(0, SEARCH_CONFIG.MAX_SOURCES_TO_CHECK).map(s => {
 
   private async extractSubQueries(query: string): Promise<Array<{ question: string; searchQuery: string }>> {
     const messages = [
-      new SystemMessage(`Extract the individual factual questions from this query. Each question should be something that can be definitively answered.
+      new SystemMessage(`Extract intelligence gathering sub-questions for deep website research. Each question should focus on a specific aspect of the 7-phase intelligence framework.
+
+INTELLIGENCE FRAMEWORK PHASES:
+1. Website Intelligence: Architecture, pricing, leadership
+2. Social Intelligence: LinkedIn, Twitter, YouTube, Reddit
+3. Competitive Intelligence: Direct/indirect competitors, positioning
+4. Customer Intelligence: ICP, reviews, success stories
+5. Market Intelligence: Industry trends, analyst relations
+6. Technical Intelligence: Security, specifications, integrations
+7. Business Intelligence: Funding, partnerships, risks
 
 IMPORTANT: 
-- When the user mentions something with a version/number (like "deepseek r1 0528"), include the FULL version in the question
-- For the search query, you can simplify slightly but keep key identifiers
-- Example: "deepseek r1 0528" → question: "What is DeepSeek R1 0528?", searchQuery: "DeepSeek R1 0528"
+- When analyzing a company/website, break down into systematic intelligence gathering questions
+- Focus on actionable intelligence that would help with competitive analysis, sales strategy, or market research
+- Each question should target a specific intelligence area
+- Search queries should use company name + intelligence keywords
 
 Examples:
-"Who founded Anthropic and when" → 
+"Research Company X" → 
 [
-  {"question": "Who founded Anthropic?", "searchQuery": "Anthropic founders"},
-  {"question": "When was Anthropic founded?", "searchQuery": "Anthropic founded date year"}
+  {"question": "What is Company X's website architecture and content structure?", "searchQuery": "Company X sitemap robots.txt navigation structure"},
+  {"question": "What are Company X's pricing tiers and enterprise options?", "searchQuery": "Company X pricing tiers enterprise pricing cost"},
+  {"question": "Who are Company X's key executives and leadership team?", "searchQuery": "Company X leadership team executives founders"},
+  {"question": "What is Company X's social media presence and engagement?", "searchQuery": "Company X LinkedIn Twitter social media presence"},
+  {"question": "Who are Company X's main competitors and how do they compare?", "searchQuery": "Company X competitors comparison alternatives"},
+  {"question": "What do customers say about Company X in reviews?", "searchQuery": "Company X reviews G2 Capterra customer feedback"},
+  {"question": "What is Company X's technology stack and security posture?", "searchQuery": "Company X technology stack security compliance"},
+  {"question": "What is Company X's funding status and business health?", "searchQuery": "Company X funding investors revenue growth"}
 ]
 
-"What is OpenAI's Q3 2024 revenue and who is their VP of Infrastructure" →
+"Analyze Product Y" →
 [
-  {"question": "What was OpenAI's Q3 2024 revenue?", "searchQuery": "OpenAI Q3 2024 revenue earnings"},
-  {"question": "Who is OpenAI's VP of Infrastructure?", "searchQuery": "OpenAI VP Infrastructure executive team"}
-]
-
-"Tell me about Product A + Model B version 123" →
-[
-  {"question": "What is Product A?", "searchQuery": "Product A features"},
-  {"question": "What is Model B version 123?", "searchQuery": "Model B"}
-]
-
-"Who founded Company X, compare Product A and Product B, and tell me about Technology Y + Model Z 1234" →
-[
-  {"question": "Who founded Company X?", "searchQuery": "Company X founders"},
-  {"question": "How do Product A and Product B compare?", "searchQuery": "Product A vs Product B comparison"},
-  {"question": "What is Technology Y?", "searchQuery": "Technology Y features"},
-  {"question": "What is Model Z 1234?", "searchQuery": "Model Z"}
+  {"question": "What are Product Y's core features and capabilities?", "searchQuery": "Product Y features capabilities specifications"},
+  {"question": "How does Product Y compare to competing solutions?", "searchQuery": "Product Y vs competitors comparison alternatives"},
+  {"question": "What is Product Y's pricing model and enterprise options?", "searchQuery": "Product Y pricing cost enterprise pricing"},
+  {"question": "What do customers say about Product Y implementation?", "searchQuery": "Product Y customer reviews implementation case studies"},
+  {"question": "What is Product Y's technical architecture and integrations?", "searchQuery": "Product Y API integrations technical architecture"}
 ]
 
 Important: 
-- For comparison requests, create a single question/search that covers both items
-- If a term looks like it might be a model name with a version/date (like "R1 0528"), treat it as a single entity first, but create a search query that focuses on the main product name
-- Keep the number of sub-queries reasonable (aim for 3-5 max)
+- Generate 6-8 intelligence gathering questions covering all major phases
+- Each question should be specific and actionable
+- Search queries should use company/product name + intelligence keywords
+- Focus on competitive intelligence and market research value
 
 Return ONLY a JSON array of {question, searchQuery} objects.`),
       new HumanMessage(`Query: "${query}"`)
@@ -1168,28 +1221,63 @@ Return ONLY a JSON array of {question, searchQuery} objects.`),
     const messages = [
       new SystemMessage(`${this.getCurrentDateContext()}
 
-Generate ALTERNATIVE search queries for questions that weren't answered in previous attempts.
+Generate ALTERNATIVE intelligence gathering search queries for questions that weren't adequately answered in previous attempts.
 
 Previous search attempts: ${previousAttempts}
-Previous queries that didn't find answers:
-${unansweredQueries.map(sq => `- Question: "${sq.question}"\n  Previous search: "${sq.searchQuery}"`).join('\n')}
+Previous queries that didn't find sufficient intelligence:
+${unansweredQueries.map(sq => `- Intelligence Question: "${sq.question}"\n  Previous search: "${sq.searchQuery}"`).join('\n')}
 
-IMPORTANT: If searching for something with a specific version/date that keeps failing (like "R1 0528"), try searching for just the base product without the version.
+INTELLIGENCE GATHERING ALTERNATIVE STRATEGIES:
 
-Generate NEW search queries using these strategies:
-1. Try broader or more general terms
-2. Try different phrasings or synonyms
-3. Remove specific qualifiers (like years or versions) if they're too restrictive
-4. Try searching for related concepts that might contain the answer
-5. For products that might not exist, search for the company or base product name
+Website Intelligence Alternatives:
+- Try broader company research: "[Company] about us team leadership"
+- Search for company documents: "[Company] sitemap robots.txt"
+- Look for company resources: "[Company] resources downloads case studies"
 
-Examples of alternative searches:
-- Original: "ModelX 2024.05" → Alternative: "ModelX latest version"
-- Original: "OpenAI Q3 2024 revenue" → Alternative: "OpenAI financial results 2024"
-- Original: "iPhone 15 Pro features" → Alternative: "latest iPhone specifications"
+Social Intelligence Alternatives:
+- Search for company social presence: "[Company] LinkedIn Twitter social media"
+- Look for employee activity: "[Company] employees team members LinkedIn"
+- Search for community mentions: "[Company] Reddit forum community"
 
-Return one alternative search query per unanswered question, one per line.`),
-      new HumanMessage(`Generate alternative searches for these ${unansweredQueries.length} unanswered questions.`)
+Competitive Intelligence Alternatives:
+- Broader competitive research: "[Company] competitors alternatives comparison"
+- Industry positioning: "[Company] industry market position"
+- Partnership research: "[Company] partners integrations ecosystem"
+
+Customer Intelligence Alternatives:
+- Review site research: "[Company] G2 Capterra Trustpilot reviews"
+- Customer success stories: "[Company] customer success case studies testimonials"
+- Implementation research: "[Company] implementation deployment onboarding"
+
+Market Intelligence Alternatives:
+- Industry context: "[Company] industry trends market size"
+- Analyst coverage: "[Company] Gartner Forrester analyst reports"
+- Media coverage: "[Company] press releases news coverage"
+
+Technical Intelligence Alternatives:
+- Technology research: "[Company] technology stack architecture"
+- Security research: "[Company] security compliance certifications"
+- API documentation: "[Company] API developer documentation"
+
+Business Intelligence Alternatives:
+- Funding research: "[Company] funding investors Crunchbase"
+- Business news: "[Company] revenue growth partnerships"
+- Executive research: "[Company] executives founders background"
+
+Generate NEW intelligence gathering search queries using these strategies:
+1. Try broader or more general intelligence gathering terms
+2. Use different intelligence gathering keywords and phrases
+3. Remove overly specific qualifiers that might be too restrictive
+4. Try searching for related intelligence areas that might contain the answer
+5. For companies that might not have extensive public information, search for industry context
+
+Examples of alternative intelligence searches:
+- Original: "Company X pricing enterprise" → Alternative: "Company X pricing cost plans"
+- Original: "Company X leadership team" → Alternative: "Company X executives founders about us"
+- Original: "Company X competitors comparison" → Alternative: "Company X alternatives competitors industry"
+
+Return one alternative intelligence gathering search query per unanswered question, one per line.`),
+      new HumanMessage(`Generate alternative intelligence gathering searches for these ${unansweredQueries.length} unanswered intelligence questions.`)
     ];
 
     try {
@@ -1209,7 +1297,7 @@ Return one alternative search query per unanswered question, one per line.`),
       return queries.slice(0, SEARCH_CONFIG.MAX_SEARCH_QUERIES);
     } catch {
       // Fallback: return original queries with slight modifications
-      return unansweredQueries.map(sq => sq.searchQuery + " news reports").slice(0, SEARCH_CONFIG.MAX_SEARCH_QUERIES);
+      return unansweredQueries.map(sq => sq.searchQuery + " intelligence research").slice(0, SEARCH_CONFIG.MAX_SEARCH_QUERIES);
     }
   }
 
@@ -1230,19 +1318,32 @@ Return one alternative search query per unanswered question, one per line.`),
       const messages = [
         new SystemMessage(`${this.getCurrentDateContext()}
 
-Extract ONE key finding from this content that's SPECIFICALLY relevant to the search query.
+Extract ONE key intelligence finding from this content that's SPECIFICALLY relevant to the intelligence gathering query.
 
-CRITICAL: Only summarize information that directly relates to the search query.
-- If searching for "Samsung phones", only mention Samsung phone information
-- If searching for "Firecrawl founders", only mention founder information
-- If no relevant information is found, just return the most relevant fact from the page
+CRITICAL: Only summarize intelligence that directly relates to the research query.
+- If researching "Company X pricing", only mention pricing intelligence
+- If researching "Company X leadership", only mention leadership intelligence
+- If researching "Company X competitors", only mention competitive intelligence
+- If no relevant intelligence is found, extract the most relevant business insight
+
+INTELLIGENCE FOCUS AREAS:
+- Website Intelligence: Architecture, content structure, navigation
+- Pricing Intelligence: Pricing models, tiers, enterprise options
+- Leadership Intelligence: Executive backgrounds, team structure, expertise
+- Social Intelligence: Social media presence, engagement, content themes
+- Competitive Intelligence: Competitor analysis, positioning, differentiation
+- Customer Intelligence: Customer profiles, reviews, success stories
+- Market Intelligence: Industry trends, market position, analyst coverage
+- Technical Intelligence: Technology stack, security, integrations
+- Business Intelligence: Funding, partnerships, growth indicators
 
 Instructions:
-- Return just ONE sentence with a specific finding
-- Include numbers, dates, or specific details when available
+- Return just ONE sentence with a specific intelligence finding
+- Include numbers, dates, names, or specific details when available
 - Keep it under ${SEARCH_CONFIG.SUMMARY_CHAR_LIMIT} characters
-- Don't say "No relevant information was found" - find something relevant to the current search`),
-        new HumanMessage(`Query: "${query}"\n\nContent: ${content.slice(0, 2000)}`)
+- Focus on actionable intelligence insights
+- Don't say "No relevant information was found" - find something relevant to the current intelligence gathering`),
+        new HumanMessage(`Intelligence Query: "${query}"\n\nContent: ${content.slice(0, 2000)}`)
       ];
       
       const response = await this.llm.invoke(messages);
@@ -1261,7 +1362,7 @@ Instructions:
     const sourcesText = sources
       .map((s, i) => {
         if (!s.content) return `[${i + 1}] ${s.title}\n[No content available]`;
-        return `[${i + 1}] ${s.title}\n${s.content}`;
+        return `[${s.title}\n${s.content}`;
       })
       .join('\n\n');
     
@@ -1276,8 +1377,43 @@ Instructions:
     const messages = [
       new SystemMessage(`${this.getCurrentDateContext()}
 
-Answer the user's question based on the provided sources. Provide a clear, comprehensive answer with citations [1], [2], etc. Use markdown formatting for better readability. If this question relates to previous topics discussed, make connections where relevant.`),
-      new HumanMessage(`Question: "${query}"${contextPrompt}\n\nBased on these sources:\n${sourcesText}`)
+You are a specialized intelligence analyst. Based on the provided sources, create a comprehensive intelligence report following the 7-phase intelligence framework.
+
+INTELLIGENCE REPORT STRUCTURE:
+
+1. EXECUTIVE INTELLIGENCE BRIEF (15-20 bullet points)
+   - Market Position, Value Proposition, Customer Profile
+   - Pricing Strategy, Growth Stage, Technology Approach
+   - Leadership Strength, Partnership Ecosystem, Market Opportunity
+   - Competitive Advantages, Risk Factors, Sales Approach
+   - Customer Success, Content Strategy, Industry Recognition
+
+2. DETAILED INTELLIGENCE SECTIONS
+   - Company Overview & Positioning
+   - Product & Service Portfolio
+   - Pricing & Packaging Intelligence
+   - Leadership & Organizational Structure
+   - Customer Intelligence & Success Stories
+   - Marketing & Content Strategy
+   - Technology & Security Profile
+   - Partnership & Channel Strategy
+   - Competitive Landscape Analysis
+   - Sales Process & Customer Acquisition
+
+3. KEY FACTS SUMMARY TABLE
+   - Company details, pricing, technology, compliance
+
+4. EMPLOYEE INTELLIGENCE MATRIX
+   - Key personnel with backgrounds and expertise
+
+5. CONTENT INVENTORY CATALOG
+   - Available resources and lead generation value
+
+6. SOCIAL MEDIA INTELLIGENCE DASHBOARD
+   - Platform presence and engagement metrics
+
+Use markdown formatting for better readability. Organize findings by intelligence phase and provide specific, actionable insights with source citations [1], [2], etc. Focus on competitive intelligence value and market research insights.`),
+      new HumanMessage(`Intelligence Research Request: "${query}"${contextPrompt}\n\nBased on these intelligence sources:\n${sourcesText}`)
     ];
     
     let fullText = '';
@@ -1321,26 +1457,56 @@ Answer the user's question based on the provided sources. Provide a clear, compr
       const messages = [
         new SystemMessage(`${this.getCurrentDateContext()}
 
-Based on this search query and answer, generate 3 relevant follow-up questions that the user might want to explore next.
+Based on this intelligence research and findings, generate 3 relevant follow-up intelligence questions that would deepen the competitive analysis and market research.
+
+INTELLIGENCE FOLLOW-UP FOCUS AREAS:
+
+Website Intelligence Deep-Dive:
+- "Can you analyze [Company]'s content strategy and lead generation approach?"
+- "What are [Company]'s hidden pages and technical architecture details?"
+
+Social Intelligence Expansion:
+- "How does [Company] engage with their community across social platforms?"
+- "What employee advocacy patterns and thought leadership content does [Company] produce?"
+
+Competitive Intelligence Enhancement:
+- "How does [Company] position against [specific competitor] in detail?"
+- "What are [Company]'s unique differentiation points in the market?"
+
+Customer Intelligence Deep-Dive:
+- "What specific customer success metrics and ROI stories does [Company] highlight?"
+- "How does [Company] handle customer onboarding and support?"
+
+Market Intelligence Expansion:
+- "What industry trends and market dynamics affect [Company]'s positioning?"
+- "How does [Company] engage with industry analysts and media?"
+
+Technical Intelligence Deep-Dive:
+- "What are [Company]'s API capabilities and integration requirements?"
+- "How does [Company] handle security, compliance, and data privacy?"
+
+Business Intelligence Enhancement:
+- "What are [Company]'s recent funding activities and growth indicators?"
+- "How does [Company] approach partnerships and strategic alliances?"
 
 Instructions:
-- Generate exactly 3 follow-up questions
-- Each question should explore a different aspect or dig deeper into the topic
-- Questions should be natural and conversational
-- They should build upon the information provided in the answer
-- Make them specific and actionable
+- Generate exactly 3 follow-up intelligence questions
+- Each question should explore a different intelligence phase or aspect
+- Questions should be specific and actionable for competitive research
+- They should build upon the intelligence findings provided
+- Make them specific to the company/product being researched
 - Keep each question under 80 characters
 - Return only the questions, one per line, no numbering or bullets
 - Consider the entire conversation context when generating questions
-- Only include time-relevant questions if the original query was about current events or trends
+- Focus on intelligence gaps that would provide competitive advantage
 
-Examples of good follow-up questions:
-- "How does this compare to [alternative]?"
-- "Can you explain [technical term] in more detail?"
-- "What are the practical applications of this?"
-- "What are the main benefits and drawbacks?"
-- "How is this typically implemented?"`),
-        new HumanMessage(`Original query: "${originalQuery}"\n\nAnswer summary: ${answer.length > 1000 ? answer.slice(0, 1000) + '...' : answer}${contextPrompt}`)
+Examples of good intelligence follow-up questions:
+- "How does [Company] compare to [Competitor] in pricing strategy?"
+- "What are [Company]'s key customer success metrics and stories?"
+- "How does [Company] approach enterprise sales and implementation?"
+- "What technology partnerships and integrations does [Company] offer?"
+- "How does [Company] position against emerging market alternatives?"`),
+        new HumanMessage(`Original intelligence research: "${originalQuery}"\n\nIntelligence findings summary: ${answer.length > 1000 ? answer.slice(0, 1000) + '...' : answer}${contextPrompt}`)
       ];
       
       const response = await this.llm.invoke(messages);

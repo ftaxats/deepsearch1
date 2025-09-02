@@ -310,10 +310,10 @@ export class ContextProcessor {
       
       const result = await generateText({
         model: openai('gpt-4o-mini'),
-        prompt: `You are a research assistant helping to extract the most relevant information from a webpage.
+        prompt: `You are an intelligence analyst helping to extract actionable intelligence insights from web content.
 
-User's question: "${query}"
-Related search queries: ${searchQueries.join(', ')}
+Intelligence Research Focus: "${query}"
+Related intelligence gathering areas: ${searchQueries.join(', ')}
 
 Source title: ${source.title}
 Source URL: ${source.url}
@@ -321,15 +321,26 @@ Source URL: ${source.url}
 Content to analyze:
 ${source.content.slice(0, 15000)} ${source.content.length > 15000 ? '\n[... content truncated]' : ''}
 
-Instructions:
-1. Extract ONLY the information that directly relates to the user's question and search queries
-2. Focus on specific facts, data, quotes, and concrete details
-3. Preserve important numbers, dates, names, and technical details
-4. Maintain the original meaning and context
-5. If the content has little relevance to the query, just note that briefly
+INTELLIGENCE EXTRACTION INSTRUCTIONS:
+1. Extract ONLY intelligence that directly relates to the research focus and intelligence gathering areas
+2. Focus on actionable competitive intelligence, market insights, and business intelligence
+3. Preserve important numbers, dates, names, pricing, technical details, and strategic information
+4. Maintain the original meaning and context while highlighting intelligence value
+5. If the content has little intelligence value, extract the most relevant business insight
 6. Target length: approximately ${targetLength} characters
 
-Provide a focused summary that would help answer the user's question:`,
+INTELLIGENCE FOCUS AREAS:
+- Website Intelligence: Architecture, content structure, navigation patterns
+- Pricing Intelligence: Pricing models, tiers, enterprise options, hidden costs
+- Leadership Intelligence: Executive backgrounds, team structure, expertise areas
+- Social Intelligence: Social media presence, engagement, content themes
+- Competitive Intelligence: Competitor analysis, positioning, differentiation
+- Customer Intelligence: Customer profiles, reviews, success stories, use cases
+- Market Intelligence: Industry trends, market position, analyst coverage
+- Technical Intelligence: Technology stack, security, integrations, API capabilities
+- Business Intelligence: Funding, partnerships, growth indicators, risk factors
+
+Provide a focused intelligence summary that would help with competitive analysis, market research, or business intelligence:`,
         temperature: 0.3,
         maxTokens: Math.ceil(targetLength / 3), // Rough token estimation
       });
