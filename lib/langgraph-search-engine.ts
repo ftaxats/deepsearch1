@@ -199,51 +199,207 @@ export class LangGraphSearchEngine {
     this.graph = this.buildGraph();
   }
 
-  // New: Analyze a pre-collected dossier without additional web browsing
+  // Enhanced: Analyze dossier + conduct targeted website crawling for ICP research
   async analyzeDossier(
     dossierText: string,
     onEvent: (event: SearchEvent) => void,
     options?: { query?: string; context?: { query: string; response: string }[] }
   ): Promise<void> {
-    const query = options?.query || 'ICP analysis from pre-collected research dossier';
+    const query = options?.query || 'Deep ICP analysis with targeted website crawling';
 
     try {
-      // Signal phases similar to the normal flow
-      onEvent({ type: 'phase-update', phase: 'understanding', message: 'Reading provided dossier…' });
-      onEvent({ type: 'thinking', message: 'Using the provided Firecrawl dossier for analysis. Avoiding re-browsing unless strictly necessary.' });
-      onEvent({ type: 'phase-update', phase: 'planning', message: 'Planning ICP identification workflow…' });
-      onEvent({ type: 'phase-update', phase: 'searching', message: 'Collecting sources from dossier…' });
+      // Phase 1: Extract competitors and targets from dossier
+      onEvent({ type: 'phase-update', phase: 'understanding', message: 'Analyzing research dossier for competitor intelligence…' });
+      onEvent({ type: 'thinking', message: 'Extracting competitor websites and target companies from provided research data.' });
+      
+      // Build initial source from dossier
+      const dossierSource: Source = {
+        url: 'about:research_dossier',
+        title: 'Research Dossier - Base Intelligence',
+        content: dossierText,
+        quality: 1,
+      };
 
-      // Build a single source from dossier
-      const sources: Source[] = [
-        {
-          url: 'about:firecrawl_dossier',
-          title: 'Firecrawl Dossier',
-          content: dossierText,
-          quality: 1,
-        },
-      ];
+      // Extract competitor websites and target domains from dossier
+      onEvent({ type: 'phase-update', phase: 'planning', message: 'Identifying competitor websites for targeted crawling…' });
+      const competitorData = await this.extractCompetitorWebsites(dossierText);
+      
+      onEvent({ type: 'thinking', message: `Found ${competitorData.competitors.length} competitors for deep crawling: ${competitorData.competitors.slice(0, 3).join(', ')}${competitorData.competitors.length > 3 ? '...' : ''}` });
 
-      onEvent({ type: 'found', sources, query: 'Provided dossier' });
-      onEvent({ type: 'phase-update', phase: 'analyzing', message: 'Extracting intelligence and proposing ICPs…' });
+      // Phase 2: Systematic website crawling
+      onEvent({ type: 'phase-update', phase: 'searching', message: 'Crawling competitor websites and sitemaps…' });
+      
+      const allSources: Source[] = [dossierSource];
+      
+      // Crawl each competitor systematically
+      for (let i = 0; i < Math.min(competitorData.competitors.length, 5); i++) {
+        const domain = competitorData.competitors[i];
+        onEvent({ type: 'thinking', message: `Crawling ${domain} - sitemap, customers, case studies, pricing…` });
+        
+        const crawledSources = await this.crawlCompetitorWebsite(domain, onEvent);
+        allSources.push(...crawledSources);
+        
+        onEvent({ type: 'found', sources: crawledSources, query: `${domain} website crawl` });
+      }
 
-      // Stream final report using the existing answer generator
+      // Phase 3: Targeted customer extraction
+      onEvent({ type: 'phase-update', phase: 'analyzing', message: 'Extracting customer lists and building prospect database…' });
+      onEvent({ type: 'thinking', message: 'Processing crawled data for customer names, case studies, and prospect intelligence.' });
+
+      // Phase 4: Generate comprehensive ICP report
+      onEvent({ type: 'phase-update', phase: 'synthesizing', message: 'Compiling actionable prospect intelligence report…' });
+
       const contentCb = (chunk: string) => {
         onEvent({ type: 'content-chunk', chunk });
       };
 
-      const finalText = await this.generateStreamingAnswer(query, sources, contentCb, options?.context);
+      const finalText = await this.generateStreamingAnswer(query, allSources, contentCb, options?.context);
 
-      onEvent({ type: 'phase-update', phase: 'synthesizing', message: 'Preparing validation checklist…' });
-      onEvent({ type: 'final-result', content: finalText, sources });
-      onEvent({ type: 'phase-update', phase: 'complete', message: 'ICP analysis complete.' });
+      onEvent({ type: 'final-result', content: finalText, sources: allSources });
+      onEvent({ type: 'phase-update', phase: 'complete', message: 'Deep ICP research with website crawling complete.' });
+      
     } catch (error) {
       onEvent({
         type: 'error',
-        error: error instanceof Error ? error.message : 'Dossier analysis failed',
+        error: error instanceof Error ? error.message : 'ICP analysis with crawling failed',
         errorType: 'unknown',
       });
     }
+  }
+
+  // Extract competitor websites from dossier text
+  private async extractCompetitorWebsites(dossierText: string): Promise<{ competitors: string[]; targets: string[] }> {
+    try {
+      const messages = [
+        new SystemMessage(`Extract competitor websites and target company domains from this research dossier.
+
+Return a JSON object with:
+{
+  "competitors": ["domain1.com", "domain2.com", ...],
+  "targets": ["target1.com", "target2.com", ...]
+}
+
+Extract:
+- competitors: Direct competitor domains mentioned (clean domains without http/www)
+- targets: Potential customer/prospect domains mentioned
+
+Focus on extracting clean domains (example.com format) from the text.`),
+        new HumanMessage(`Research dossier to analyze:\n\n${dossierText.slice(0, 8000)}`)
+      ];
+
+      const response = await this.llm.invoke(messages);
+      const result = JSON.parse(response.content.toString());
+      
+      return {
+        competitors: result.competitors || [],
+        targets: result.targets || []
+      };
+    } catch (error) {
+      console.error('Error extracting competitor websites:', error);
+      return { competitors: [], targets: [] };
+    }
+  }
+
+  // Systematically crawl a competitor website
+  private async crawlCompetitorWebsite(domain: string, onEvent: (event: SearchEvent) => void): Promise<Source[]> {
+    const sources: Source[] = [];
+    
+    try {
+      // Common paths to crawl for competitor intelligence
+      const targetPaths = [
+        '/sitemap.xml',
+        '/customers',
+        '/case-studies', 
+        '/testimonials',
+        '/pricing',
+        '/about',
+        '/team',
+        '/partners',
+        '/integrations',
+        '/resources',
+        '/blog',
+        '/press',
+        '/newsroom'
+      ];
+
+      // First, try to get sitemap
+      try {
+        const sitemapResult = await this.firecrawl.scrape(`https://${domain}/sitemap.xml`, {
+          formats: ['markdown'],
+          timeout: SEARCH_CONFIG.SCRAPE_TIMEOUT
+        });
+        
+        if (sitemapResult.success && sitemapResult.data?.markdown) {
+          sources.push({
+            url: `https://${domain}/sitemap.xml`,
+            title: `${domain} - Sitemap`,
+            content: sitemapResult.data.markdown,
+            quality: 0.9
+          });
+          
+          onEvent({ type: 'thinking', message: `✓ Found sitemap for ${domain}` });
+        }
+      } catch (error) {
+        onEvent({ type: 'thinking', message: `⚠ No sitemap found for ${domain}` });
+      }
+
+      // Crawl key pages for customer intelligence
+      for (const path of targetPaths.slice(1, 6)) { // Limit to avoid rate limits
+        try {
+          const result = await this.firecrawl.scrape(`https://${domain}${path}`, {
+            formats: ['markdown'],
+            timeout: SEARCH_CONFIG.SCRAPE_TIMEOUT
+          });
+          
+          if (result.success && result.data?.markdown && result.data.markdown.length > 200) {
+            sources.push({
+              url: `https://${domain}${path}`,
+              title: `${domain} - ${path.replace('/', '').replace('-', ' ').toUpperCase()}`,
+              content: result.data.markdown,
+              quality: path.includes('customer') || path.includes('case') ? 0.95 : 0.8
+            });
+            
+            onEvent({ type: 'thinking', message: `✓ Crawled ${domain}${path}` });
+          }
+        } catch (error) {
+          // Continue with other paths if one fails
+          continue;
+        }
+        
+        // Small delay to be respectful to target sites
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Use Firecrawl search within the domain for customer-related content
+      try {
+        const customerSearch = await this.firecrawl.search(`site:${domain} customers OR "case study" OR testimonial OR "success story"`, {
+          limit: 3,
+          scrapeOptions: { formats: ['markdown'] }
+        });
+        
+        if (customerSearch.success && customerSearch.data) {
+          customerSearch.data.forEach((result: SearchResult) => {
+            if (result.markdown && result.markdown.length > 200) {
+              sources.push({
+                url: result.url,
+                title: result.title || `${domain} - Customer Content`,
+                content: result.markdown,
+                quality: 0.9
+              });
+            }
+          });
+          
+          onEvent({ type: 'thinking', message: `✓ Found ${customerSearch.data.length} customer-related pages on ${domain}` });
+        }
+      } catch (error) {
+        onEvent({ type: 'thinking', message: `⚠ Customer search failed for ${domain}` });
+      }
+
+    } catch (error) {
+      onEvent({ type: 'thinking', message: `✗ Failed to crawl ${domain}: ${error instanceof Error ? error.message : 'Unknown error'}` });
+    }
+
+    return sources;
   }
 
   getInitialSteps(): SearchStep[] {
@@ -1459,24 +1615,58 @@ INTELLIGENCE REPORT STRUCTURE:
 6. SOCIAL MEDIA INTELLIGENCE DASHBOARD
    - Platform presence and engagement metrics
 
-7. ICP IDENTIFICATION AND BUYER PERSONA (CRITICAL)
-   Follow this methodology strictly to derive and propose ICPs:
-   - Case Studies & Clients Extraction: Identify named customers, case studies, industries served; list 5-15 examples with source citations.
-   - Industry Segmentation: Cluster the above into 3-6 industries/subsegments. Note company size bands and regions when observable.
-   - Problem/Use-Case Mapping: For each segment, summarize dominant pain points and use cases that the product addresses (quote or cite where possible).
-   - ICP Proposals (3-5): For each proposed ICP, specify:
-     • Industry/vertical and subsegment
-     • Company size (employees and/or revenue), geo if apparent
-     • Triggers/buying situations (events that create demand)
-     • Required capabilities mapped to product features
-     • Success metrics owners care about (KPIs)
-   - Buyer Personas (per ICP): List 3-6 typical decision-makers/influencers with titles (e.g., VP Engineering, Head of Data, RevOps Manager). For each, include:
-     • Primary responsibilities and success metrics
-     • Pain points related to the solution
-     • Objections/risks and evaluation criteria
-   - Lookalike Criteria: Provide a compact list of attributes to find similar accounts (keywords, tech stack hints, compliance needs, integration ecosystem, hiring signals).
-   - Validation Set: Propose 10-20 sample target accounts (by domain) that match each ICP; distribute across segments. Cite why they match using evidence from sources where possible.
-   - User Validation Prompt: Conclude with a short checklist asking the user to confirm if the ICPs and sample accounts match (Yes/No/Suggest edits). Make it easy to respond by enumerating ICPs and listing 3-5 sample accounts per ICP.
+7. DEEP ICP RESEARCH & COMPETITOR CUSTOMER INTELLIGENCE (CRITICAL)
+   Execute this comprehensive methodology to identify specific prospects:
+
+   A) COMPETITOR ANALYSIS & CUSTOMER EXTRACTION:
+   - Direct Competitors: List all competitors mentioned, their market positioning, and differentiation
+   - Competitor Customers: Extract SPECIFIC company names, domains, and case studies from competitor websites/content
+   - Customer Wins/Losses: Identify companies that switched between solutions or announced partnerships
+   - Technology Integrations: Find companies using complementary tech stacks that indicate buying intent
+
+   B) DEEP ICP PROFILING WITH REAL COMPANIES:
+   - Industry Deep-Dive: For each vertical, list 10-20 SPECIFIC companies (with domains) that fit the profile
+   - Company Size Analysis: Break down by employee count, revenue bands, funding stage (if available)
+   - Geographic Distribution: Map companies by regions, noting expansion patterns
+   - Technology Stack: Identify common tools, platforms, and integrations used by prospects
+
+   C) ACTIONABLE PROSPECT DATABASE:
+   Create detailed prospect lists for each ICP with:
+   - Company Name & Domain
+   - Industry & Subsegment
+   - Employee Count (estimated)
+   - Location (City, State/Country)
+   - Technology Stack (CRM, LMS, etc.)
+   - Recent News/Triggers (funding, hiring, expansion)
+   - Decision Maker Titles (specific names if available)
+   - Contact Strategy (LinkedIn, email patterns, warm intro paths)
+
+   D) COMPETITOR CUSTOMER POACHING OPPORTUNITIES:
+   - List 15-25 companies currently using competitor solutions
+   - Identify pain points/gaps in competitor offerings
+   - Note contract renewal timelines (if available)
+   - Suggest competitive angles and messaging
+
+   E) VALIDATION & PRIORITIZATION:
+   - Tier prospects: Hot (ready to buy), Warm (showing interest), Cold (fit profile)
+   - Provide specific outreach sequences for each tier
+   - Include exact LinkedIn search strings and email discovery methods
+   - Note referral/partnership introduction opportunities
+
+   F) IMMEDIATE ACTION PLAN:
+   Create a 30-60-90 day outreach calendar with:
+   - Week 1-2: Top 10 highest priority prospects with personalized approach
+   - Month 1: Broader outreach to warm prospects with value-driven content
+   - Month 2-3: Nurture sequences and competitive displacement campaigns
+
+   USER VALIDATION CHECKPOINT:
+   Review the prospect database and confirm:
+   □ ICP definitions are accurate and actionable
+   □ Company lists contain real, reachable prospects  
+   □ Competitive intelligence is comprehensive
+   □ Outreach strategies are realistic and ethical
+   
+   Provide feedback: [Approve] [Refine ICPs] [Add more prospects] [Adjust strategy]
 
 Formatting:
 - Use clear markdown subsections.
