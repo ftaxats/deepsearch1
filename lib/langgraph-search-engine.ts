@@ -324,44 +324,38 @@ Focus on extracting clean domains (example.com format) from the text.`),
 
       // First, try to get sitemap
       try {
-        const sitemapResult = await this.firecrawl.scrape(`https://${domain}/sitemap.xml`, {
-          formats: ['markdown'],
-          timeout: SEARCH_CONFIG.SCRAPE_TIMEOUT
-        });
+        const sitemapResult = await this.firecrawl.scrapeUrl(`https://${domain}/sitemap.xml`, SEARCH_CONFIG.SCRAPE_TIMEOUT);
         
-        if (sitemapResult.success && sitemapResult.data?.markdown) {
+        if (sitemapResult.success && sitemapResult.markdown) {
           sources.push({
             url: `https://${domain}/sitemap.xml`,
             title: `${domain} - Sitemap`,
-            content: sitemapResult.data.markdown,
+            content: sitemapResult.markdown,
             quality: 0.9
           });
           
           onEvent({ type: 'thinking', message: `✓ Found sitemap for ${domain}` });
         }
-      } catch (error) {
+      } catch {
         onEvent({ type: 'thinking', message: `⚠ No sitemap found for ${domain}` });
       }
 
       // Crawl key pages for customer intelligence
       for (const path of targetPaths.slice(1, 6)) { // Limit to avoid rate limits
         try {
-          const result = await this.firecrawl.scrape(`https://${domain}${path}`, {
-            formats: ['markdown'],
-            timeout: SEARCH_CONFIG.SCRAPE_TIMEOUT
-          });
+          const result = await this.firecrawl.scrapeUrl(`https://${domain}${path}`, SEARCH_CONFIG.SCRAPE_TIMEOUT);
           
-          if (result.success && result.data?.markdown && result.data.markdown.length > 200) {
+          if (result.success && result.markdown && result.markdown.length > 200) {
             sources.push({
               url: `https://${domain}${path}`,
               title: `${domain} - ${path.replace('/', '').replace('-', ' ').toUpperCase()}`,
-              content: result.data.markdown,
+              content: result.markdown,
               quality: path.includes('customer') || path.includes('case') ? 0.95 : 0.8
             });
             
             onEvent({ type: 'thinking', message: `✓ Crawled ${domain}${path}` });
           }
-        } catch (error) {
+        } catch {
           // Continue with other paths if one fails
           continue;
         }
@@ -377,8 +371,8 @@ Focus on extracting clean domains (example.com format) from the text.`),
           scrapeOptions: { formats: ['markdown'] }
         });
         
-        if (customerSearch.success && customerSearch.data) {
-          customerSearch.data.forEach((result: SearchResult) => {
+        if (customerSearch.data) {
+          customerSearch.data.forEach((result: any) => {
             if (result.markdown && result.markdown.length > 200) {
               sources.push({
                 url: result.url,
@@ -391,7 +385,7 @@ Focus on extracting clean domains (example.com format) from the text.`),
           
           onEvent({ type: 'thinking', message: `✓ Found ${customerSearch.data.length} customer-related pages on ${domain}` });
         }
-      } catch (error) {
+      } catch {
         onEvent({ type: 'thinking', message: `⚠ Customer search failed for ${domain}` });
       }
 
