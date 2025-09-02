@@ -199,6 +199,53 @@ export class LangGraphSearchEngine {
     this.graph = this.buildGraph();
   }
 
+  // New: Analyze a pre-collected dossier without additional web browsing
+  async analyzeDossier(
+    dossierText: string,
+    onEvent: (event: SearchEvent) => void,
+    options?: { query?: string; context?: { query: string; response: string }[] }
+  ): Promise<void> {
+    const query = options?.query || 'ICP analysis from pre-collected research dossier';
+
+    try {
+      // Signal phases similar to the normal flow
+      onEvent({ type: 'phase-update', phase: 'understanding', message: 'Reading provided dossier…' });
+      onEvent({ type: 'thinking', message: 'Using the provided Firecrawl dossier for analysis. Avoiding re-browsing unless strictly necessary.' });
+      onEvent({ type: 'phase-update', phase: 'planning', message: 'Planning ICP identification workflow…' });
+      onEvent({ type: 'phase-update', phase: 'searching', message: 'Collecting sources from dossier…' });
+
+      // Build a single source from dossier
+      const sources: Source[] = [
+        {
+          url: 'about:firecrawl_dossier',
+          title: 'Firecrawl Dossier',
+          content: dossierText,
+          quality: 1,
+        },
+      ];
+
+      onEvent({ type: 'found', sources, query: 'Provided dossier' });
+      onEvent({ type: 'phase-update', phase: 'analyzing', message: 'Extracting intelligence and proposing ICPs…' });
+
+      // Stream final report using the existing answer generator
+      const contentCb = (chunk: string) => {
+        onEvent({ type: 'content-chunk', chunk });
+      };
+
+      const finalText = await this.generateStreamingAnswer(query, sources, contentCb, options?.context);
+
+      onEvent({ type: 'phase-update', phase: 'synthesizing', message: 'Preparing validation checklist…' });
+      onEvent({ type: 'final-result', content: finalText, sources });
+      onEvent({ type: 'phase-update', phase: 'complete', message: 'ICP analysis complete.' });
+    } catch (error) {
+      onEvent({
+        type: 'error',
+        error: error instanceof Error ? error.message : 'Dossier analysis failed',
+        errorType: 'unknown',
+      });
+    }
+  }
+
   getInitialSteps(): SearchStep[] {
     return [
       { id: 'understanding', label: 'Understanding request', status: 'pending' },
@@ -1362,7 +1409,7 @@ Instructions:
     const sourcesText = sources
       .map((s, i) => {
         if (!s.content) return `[${i + 1}] ${s.title}\n[No content available]`;
-        return `[${s.title}\n${s.content}`;
+        return `[${i + 1}] ${s.title}\n${s.content}`;
       })
       .join('\n\n');
     
@@ -1412,7 +1459,29 @@ INTELLIGENCE REPORT STRUCTURE:
 6. SOCIAL MEDIA INTELLIGENCE DASHBOARD
    - Platform presence and engagement metrics
 
-Use markdown formatting for better readability. Organize findings by intelligence phase and provide specific, actionable insights with source citations [1], [2], etc. Focus on competitive intelligence value and market research insights.`),
+7. ICP IDENTIFICATION AND BUYER PERSONA (CRITICAL)
+   Follow this methodology strictly to derive and propose ICPs:
+   - Case Studies & Clients Extraction: Identify named customers, case studies, industries served; list 5-15 examples with source citations.
+   - Industry Segmentation: Cluster the above into 3-6 industries/subsegments. Note company size bands and regions when observable.
+   - Problem/Use-Case Mapping: For each segment, summarize dominant pain points and use cases that the product addresses (quote or cite where possible).
+   - ICP Proposals (3-5): For each proposed ICP, specify:
+     • Industry/vertical and subsegment
+     • Company size (employees and/or revenue), geo if apparent
+     • Triggers/buying situations (events that create demand)
+     • Required capabilities mapped to product features
+     • Success metrics owners care about (KPIs)
+   - Buyer Personas (per ICP): List 3-6 typical decision-makers/influencers with titles (e.g., VP Engineering, Head of Data, RevOps Manager). For each, include:
+     • Primary responsibilities and success metrics
+     • Pain points related to the solution
+     • Objections/risks and evaluation criteria
+   - Lookalike Criteria: Provide a compact list of attributes to find similar accounts (keywords, tech stack hints, compliance needs, integration ecosystem, hiring signals).
+   - Validation Set: Propose 10-20 sample target accounts (by domain) that match each ICP; distribute across segments. Cite why they match using evidence from sources where possible.
+   - User Validation Prompt: Conclude with a short checklist asking the user to confirm if the ICPs and sample accounts match (Yes/No/Suggest edits). Make it easy to respond by enumerating ICPs and listing 3-5 sample accounts per ICP.
+
+Formatting:
+- Use clear markdown subsections.
+- Add citations [1], [2], etc. next to claims.
+- Keep the validation prompt clearly labeled at the end.`),
       new HumanMessage(`Intelligence Research Request: "${query}"${contextPrompt}\n\nBased on these intelligence sources:\n${sourcesText}`)
     ];
     
@@ -1457,55 +1526,16 @@ Use markdown formatting for better readability. Organize findings by intelligenc
       const messages = [
         new SystemMessage(`${this.getCurrentDateContext()}
 
-Based on this intelligence research and findings, generate 3 relevant follow-up intelligence questions that would deepen the competitive analysis and market research.
+Based on this intelligence research and findings, generate 3 short follow-up prompts that:
+- Ask the user to VALIDATE the proposed ICPs and sample lookalike accounts (Yes / No / Suggest edits)
+- Offer to refine segments by industry, company size, or geo
+- Offer to deepen buyer personas (titles, pains, objections) or use-case mapping
 
-INTELLIGENCE FOLLOW-UP FOCUS AREAS:
-
-Website Intelligence Deep-Dive:
-- "Can you analyze [Company]'s content strategy and lead generation approach?"
-- "What are [Company]'s hidden pages and technical architecture details?"
-
-Social Intelligence Expansion:
-- "How does [Company] engage with their community across social platforms?"
-- "What employee advocacy patterns and thought leadership content does [Company] produce?"
-
-Competitive Intelligence Enhancement:
-- "How does [Company] position against [specific competitor] in detail?"
-- "What are [Company]'s unique differentiation points in the market?"
-
-Customer Intelligence Deep-Dive:
-- "What specific customer success metrics and ROI stories does [Company] highlight?"
-- "How does [Company] handle customer onboarding and support?"
-
-Market Intelligence Expansion:
-- "What industry trends and market dynamics affect [Company]'s positioning?"
-- "How does [Company] engage with industry analysts and media?"
-
-Technical Intelligence Deep-Dive:
-- "What are [Company]'s API capabilities and integration requirements?"
-- "How does [Company] handle security, compliance, and data privacy?"
-
-Business Intelligence Enhancement:
-- "What are [Company]'s recent funding activities and growth indicators?"
-- "How does [Company] approach partnerships and strategic alliances?"
-
-Instructions:
-- Generate exactly 3 follow-up intelligence questions
-- Each question should explore a different intelligence phase or aspect
-- Questions should be specific and actionable for competitive research
-- They should build upon the intelligence findings provided
-- Make them specific to the company/product being researched
-- Keep each question under 80 characters
-- Return only the questions, one per line, no numbering or bullets
-- Consider the entire conversation context when generating questions
-- Focus on intelligence gaps that would provide competitive advantage
-
-Examples of good intelligence follow-up questions:
-- "How does [Company] compare to [Competitor] in pricing strategy?"
-- "What are [Company]'s key customer success metrics and stories?"
-- "How does [Company] approach enterprise sales and implementation?"
-- "What technology partnerships and integrations does [Company] offer?"
-- "How does [Company] position against emerging market alternatives?"`),
+Constraints:
+- Exactly 3 lines, one per question
+- Each under 80 characters
+- Actionable and specific to ICP validation/refinement
+- No bullets or numbering`),
         new HumanMessage(`Original intelligence research: "${originalQuery}"\n\nIntelligence findings summary: ${answer.length > 1000 ? answer.slice(0, 1000) + '...' : answer}${contextPrompt}`)
       ];
       

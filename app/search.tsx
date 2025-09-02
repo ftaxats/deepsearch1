@@ -27,3 +27,24 @@ export async function search(query: string, context?: { query: string; response:
 
   return { stream: stream.value };
 }
+
+export async function analyzeICP(dossierText: string, query?: string, context?: { query: string; response: string }[], apiKey?: string) {
+  'use server';
+  const stream = createStreamableValue<SearchEvent>();
+
+  const firecrawl = new FirecrawlClient(apiKey);
+  const searchEngine = new SearchEngine(firecrawl);
+
+  (async () => {
+    try {
+      await searchEngine.analyzeDossier(dossierText, (event) => {
+        stream.update(event);
+      }, { query, context });
+      stream.done();
+    } catch (error) {
+      stream.error(error);
+    }
+  })();
+
+  return { stream: stream.value };
+}
