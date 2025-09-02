@@ -59,19 +59,6 @@ interface CrawledPage {
   };
 }
 
-interface IntelligenceResult {
-  success: boolean;
-  rawData?: CrawledPage[];
-  structuredData?: unknown;
-  discoveredUrls?: string[];
-  summary?: {
-    totalPages?: number;
-    scrapedPages?: number;
-    searchQueries?: number;
-  };
-  error?: string;
-}
-
 interface SearchResultItem {
   url: string;
   title: string;
