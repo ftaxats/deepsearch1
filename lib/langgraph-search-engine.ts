@@ -35,6 +35,51 @@ export interface Source {
   content?: string;
   quality?: number;
   summary?: string;
+  metadata?: {
+    intelligenceType?: string;
+    discoveryMethod?: string;
+    crawledAt?: string;
+    structuredData?: unknown;
+    discoveredUrls?: string[];
+  };
+}
+
+interface CrawledPage {
+  url: string;
+  title: string;
+  markdown?: string;
+  content?: string;
+  metadata?: {
+    intelligenceType?: string;
+    discoveryMethod?: string;
+    crawledAt?: string;
+    structuredData?: unknown;
+    discoveredUrls?: string[];
+    relevanceScore?: number;
+  };
+}
+
+interface IntelligenceResult {
+  success: boolean;
+  rawData?: CrawledPage[];
+  structuredData?: unknown;
+  discoveredUrls?: string[];
+  summary?: {
+    totalPages?: number;
+    scrapedPages?: number;
+    searchQueries?: number;
+  };
+  error?: string;
+}
+
+interface SearchResultItem {
+  url: string;
+  title: string;
+  markdown?: string;
+  metadata?: {
+    discoveryMethod?: string;
+    crawledAt?: string;
+  };
 }
 
 export interface SearchResult {
@@ -240,7 +285,7 @@ export class LangGraphSearchEngine {
         const intelligence = await this.firecrawl.gatherWebsiteIntelligence(url, type);
         
         if (intelligence.success && intelligence.rawData) {
-          const sources = intelligence.rawData.map((page: any) => ({
+          const sources = intelligence.rawData.map((page: CrawledPage) => ({
             url: page.url,
             title: page.title || `${domain} - ${type.toUpperCase()}`,
             content: page.markdown || '',
@@ -280,12 +325,8 @@ export class LangGraphSearchEngine {
           const competitorAnalysis = await this.firecrawl.gatherWebsiteIntelligence(url, 'competitors');
           
           if (competitorAnalysis.success) {
-            // Extract competitor domains from structured data
-            const competitorData = competitorAnalysis.structuredData;
-            // This would typically extract competitor URLs from the content
-            // For now, we'll include the competitive intelligence in our sources
-            
-            const competitorSources = (competitorAnalysis.rawData || []).map((page: any) => ({
+            // Include the competitive intelligence in our sources
+            const competitorSources = (competitorAnalysis.rawData || []).map((page: CrawledPage) => ({
               url: page.url,
               title: page.title || `${domain} - Competitive Intelligence`,
               content: page.markdown || '',
@@ -299,7 +340,7 @@ export class LangGraphSearchEngine {
               message: `🏆 Competitive Analysis: ${competitorSources.length} intelligence sources analyzed` 
             });
           }
-        } catch (error) {
+        } catch {
           onEvent({ 
             type: 'thinking', 
             message: `⚠️ Competitor analysis encountered limitations - focusing on direct intelligence` 
@@ -459,7 +500,7 @@ Focus on extracting clean domains (example.com format) from the text.`),
           
           if (intelligence.success && intelligence.rawData) {
             // Convert discovered and scraped data to sources
-            const crawledSources = intelligence.rawData.map((page: any) => ({
+            const crawledSources = intelligence.rawData.map((page: CrawledPage) => ({
               url: page.url,
               title: page.title || `${domain} - ${intelligenceType.toUpperCase()}`,
               content: page.markdown || page.content || '',
@@ -507,8 +548,8 @@ Focus on extracting clean domains (example.com format) from the text.`),
           
           if (comprehensiveIntel.success && comprehensiveIntel.rawData) {
             const additionalSources = comprehensiveIntel.rawData
-              .filter((page: any) => !sources.some(s => s.url === page.url)) // Avoid duplicates
-              .map((page: any) => ({
+              .filter((page: CrawledPage) => !sources.some(s => s.url === page.url)) // Avoid duplicates
+              .map((page: CrawledPage) => ({
                 url: page.url,
                 title: page.title || `${domain} - General Intelligence`,
                 content: page.markdown || '',
@@ -526,7 +567,7 @@ Focus on extracting clean domains (example.com format) from the text.`),
               message: `✅ Comprehensive search found ${additionalSources.length} additional pages from ${domain}` 
             });
           }
-        } catch (error) {
+        } catch {
           onEvent({ type: 'thinking', message: `⚠️ Comprehensive search failed for ${domain}` });
         }
       }
@@ -542,9 +583,9 @@ Focus on extracting clean domains (example.com format) from the text.`),
         
         if (targetedSearch.data) {
           const searchSources = targetedSearch.data
-            .filter((result: any) => result.markdown && result.markdown.length > CRAWL_CONFIG.MIN_PAGE_CONTENT_LENGTH)
-            .filter((result: any) => !sources.some(s => s.url === result.url)) // Avoid duplicates
-            .map((result: any) => ({
+            .filter((result: SearchResultItem) => result.markdown && result.markdown.length > CRAWL_CONFIG.MIN_PAGE_CONTENT_LENGTH)
+            .filter((result: SearchResultItem) => !sources.some(s => s.url === result.url)) // Avoid duplicates
+            .map((result: SearchResultItem) => ({
               url: result.url,
               title: result.title || `${domain} - Targeted Search Result`,
               content: result.markdown,
@@ -559,7 +600,7 @@ Focus on extracting clean domains (example.com format) from the text.`),
           sources.push(...searchSources);
           onEvent({ type: 'thinking', message: `🎯 Targeted search discovered ${searchSources.length} additional high-value pages from ${domain}` });
         }
-      } catch (error) {
+      } catch {
         onEvent({ type: 'thinking', message: `⚠️ Targeted search failed for ${domain}` });
       }
 
