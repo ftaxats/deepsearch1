@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { search, analyzeICP, analyzeCompanyIntelligence } from './search';
+import { search, analyzeICP, analyzeCompanyIntelligence, generateICPProfiles } from './search';
 import { readStreamableValue } from 'ai/rsc';
 import { SearchDisplay } from './search-display';
 import { SearchEvent, Source } from '@/lib/langgraph-search-engine';
@@ -559,6 +559,141 @@ export function Chat() {
     }
   };
 
+  // NEW: ICP Profile Generation using the dedicated method
+  const performICPGeneration = async (dossierText: string, companyUrl?: string) => {
+    setIsSearching(true);
+
+    const assistantMsgId = (Date.now() + 1).toString();
+    const events: SearchEvent[] = [];
+
+    setMessages(prev => [...prev, {
+      id: assistantMsgId,
+      role: 'assistant',
+      content: <SearchDisplay events={events} />,
+      isSearch: true
+    }]);
+
+    try {
+      const conversationContext: Array<{ query: string; response: string }> = [];
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        if (msg.role === 'user' && i + 1 < messages.length) {
+          const nextMsg = messages[i + 1];
+          if (nextMsg.role === 'assistant' && nextMsg.searchResults) {
+            conversationContext.push({
+              query: msg.content as string,
+              response: nextMsg.searchResults
+            });
+          }
+        }
+      }
+
+      // Extract company URL from dossier text if not provided
+      const urlToUse = companyUrl || extractUrlFromText(dossierText) || 'https://example.com';
+
+      const { stream } = await generateICPProfiles(urlToUse, {
+        companyResearchData: [{
+          url: 'about:dossier',
+          title: 'Company Research Dossier',
+          content: dossierText,
+          quality: 1
+        }],
+        context: conversationContext
+      }, firecrawlApiKey || undefined);
+
+      let finalContent = '';
+      let streamingStarted = false;
+      const resultMsgId = (Date.now() + 2).toString();
+
+      for await (const event of readStreamableValue(stream)) {
+        if (!event) continue;
+
+        events.push(event);
+        
+        // Update the search display
+        setMessages(prev => prev.map(msg => 
+          msg.id === assistantMsgId 
+            ? { ...msg, content: <SearchDisplay events={[...events]} /> }
+            : msg
+        ));
+
+        if (event.type === 'content-chunk') {
+          if (!streamingStarted) {
+            streamingStarted = true;
+            // Add the result message
+            setMessages(prev => [...prev, {
+              id: resultMsgId,
+              role: 'assistant',
+              content: '',
+              isSearch: false
+            }]);
+          }
+          
+          finalContent += event.chunk;
+          
+          // Update the result message with new content
+          setMessages(prev => prev.map(msg => 
+            msg.id === resultMsgId 
+              ? { ...msg, content: <MarkdownRenderer content={finalContent} /> }
+              : msg
+          ));
+        } else if (event.type === 'final-result') {
+          finalContent = event.content;
+          
+          if (!streamingStarted) {
+            setMessages(prev => [...prev, {
+              id: resultMsgId,
+              role: 'assistant',
+              content: <MarkdownRenderer content={finalContent} />,
+              isSearch: false,
+              searchResults: finalContent
+            }]);
+          } else {
+            setMessages(prev => prev.map(msg => 
+              msg.id === resultMsgId 
+                ? { ...msg, content: <MarkdownRenderer content={finalContent} />, searchResults: finalContent }
+                : msg
+            ));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('ICP generation error:', error);
+      setMessages(prev => prev.filter(msg => msg.id !== assistantMsgId));
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during ICP generation';
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: (
+          <div className="p-4 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <p className="text-red-700 dark:text-red-300 font-medium">ICP Generation Error</p>
+            <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errorMessage}</p>
+          </div>
+        ),
+        isSearch: false
+      }]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Helper function to extract URL from text
+  const extractUrlFromText = (text: string): string | null => {
+    const urlMatch = text.match(/(https?:\/\/[^\s]+)/);
+    if (urlMatch) return urlMatch[1];
+    
+    // Look for company name patterns and try to construct URLs
+    const companyNameMatch = text.match(/(?:Company Name|Intelligence Report):\s*([^\n\r]+)/i);
+    if (companyNameMatch) {
+      const companyName = companyNameMatch[1].trim();
+      // Simple heuristic to convert company name to URL
+      const domain = companyName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return `https://${domain}.com`;
+    }
+    
+    return null;
+  };
+
   // Helper function to detect if input is a URL
   const isUrl = (text: string): boolean => {
     try {
@@ -843,7 +978,7 @@ export function Chat() {
                   if (!dossierInput.trim() || isSearching) return;
                   const userMsgId = Date.now().toString();
                   setMessages(prev => [...prev, { id: userMsgId, role: 'user', content: 'ICP analysis from pasted dossier', isSearch: true }]);
-                  performIcpAnalysis(dossierInput, input.trim() || undefined);
+                  performICPGeneration(dossierInput, input.trim() || undefined);
                 }}
                 disabled={!dossierInput.trim() || isSearching}
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
