@@ -49,7 +49,7 @@ export async function analyzeICP(dossierText: string, query?: string, context?: 
   return { stream: stream.value };
 }
 
-export async function analyzeWebsiteIntelligence(
+export async function analyzeCompanyIntelligence(
   url: string,
   options?: {
     intelligenceTypes?: ('pricing' | 'team' | 'customers' | 'products' | 'competitors')[];
@@ -66,7 +66,35 @@ export async function analyzeWebsiteIntelligence(
 
   (async () => {
     try {
-      await searchEngine.analyzeWebsiteIntelligence(url, (event) => {
+      await searchEngine.analyzeCompanyIntelligence(url, (event) => {
+        stream.update(event);
+      }, options);
+      stream.done();
+    } catch (error) {
+      stream.error(error);
+    }
+  })();
+
+  return { stream: stream.value };
+}
+
+export async function generateICPProfiles(
+  companyUrl: string,
+  options?: {
+    companyResearchData?: any[];
+    context?: { query: string; response: string }[];
+  },
+  apiKey?: string
+) {
+  'use server';
+  const stream = createStreamableValue<SearchEvent>();
+
+  const firecrawl = new FirecrawlClient(apiKey);
+  const searchEngine = new SearchEngine(firecrawl);
+
+  (async () => {
+    try {
+      await searchEngine.generateICPProfiles(companyUrl, (event) => {
         stream.update(event);
       }, options);
       stream.done();

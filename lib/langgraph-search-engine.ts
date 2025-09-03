@@ -231,8 +231,8 @@ export class LangGraphSearchEngine {
     this.graph = this.buildGraph();
   }
 
-  // NEW: Comprehensive website intelligence analysis using enhanced Firecrawl crawling
-  async analyzeWebsiteIntelligence(
+  // Company Research: Deep analysis of target company only (NO ICP creation)
+  async analyzeCompanyIntelligence(
     url: string,
     onEvent: (event: SearchEvent) => void,
     options?: { 
@@ -242,7 +242,7 @@ export class LangGraphSearchEngine {
     }
   ): Promise<void> {
     try {
-      onEvent({ type: 'phase-update', phase: 'understanding', message: 'Initializing comprehensive website intelligence gathering...' });
+      onEvent({ type: 'phase-update', phase: 'understanding', message: 'Initializing comprehensive company research...' });
       
       // Extract domain from URL
       const domain = new URL(url).hostname.replace('www.', '');
@@ -338,26 +338,26 @@ export class LangGraphSearchEngine {
       // Phase 4: Generate Comprehensive Intelligence Report
       onEvent({ type: 'phase-update', phase: 'synthesizing', message: 'Synthesizing comprehensive intelligence report...' });
       
-      const query = `Comprehensive website intelligence analysis for ${domain}`;
+      const query = `Deep company research and analysis for ${domain}`;
       
       const contentCb = (chunk: string) => {
         onEvent({ type: 'content-chunk', chunk });
       };
 
-      const finalReport = await this.generateStreamingAnswer(query, allSources, contentCb, options?.context);
+      const finalReport = await this.generateCompanyResearchReport(query, allSources, contentCb, options?.context);
 
       onEvent({ 
         type: 'final-result', 
         content: finalReport, 
         sources: allSources,
         followUpQuestions: [
-          `Expand analysis to include ${intelligenceTypes.length < 5 ? 'competitor landscape' : 'deeper customer intelligence'}`,
-          `Generate specific ICP profiles based on this intelligence`,
-          `Create actionable sales strategies from these findings`
+          `Analyze customer case studies to create ICP profiles`,
+          `Generate 3 specific ICP cards with target companies`,
+          `Expand competitive landscape analysis`
         ]
       });
       
-      onEvent({ type: 'phase-update', phase: 'complete', message: `Intelligence mission complete: ${allSources.length} sources analyzed` });
+      onEvent({ type: 'phase-update', phase: 'complete', message: `Company research complete: ${allSources.length} sources analyzed` });
       
     } catch (error) {
       onEvent({
@@ -366,6 +366,260 @@ export class LangGraphSearchEngine {
         errorType: 'unknown',
       });
     }
+  }
+
+  // NEW: Separate ICP Analysis - Creates 3 specific ICP profiles with real company examples
+  async generateICPProfiles(
+    companyUrl: string,
+    onEvent: (event: SearchEvent) => void,
+    options?: { 
+      companyResearchData?: Source[];
+      context?: { query: string; response: string }[];
+    }
+  ): Promise<void> {
+    try {
+      const domain = new URL(companyUrl).hostname.replace('www.', '');
+      
+      onEvent({ type: 'phase-update', phase: 'understanding', message: 'Analyzing customer patterns for ICP creation...' });
+      onEvent({ type: 'thinking', message: `🔍 Analyzing ${domain}'s customer base to identify ideal customer profiles` });
+
+      // Phase 1: Deep customer case study analysis
+      onEvent({ type: 'phase-update', phase: 'searching', message: 'Extracting customer case studies and success stories...' });
+      
+      const customerIntelligence = await this.firecrawl.gatherWebsiteIntelligence(companyUrl, 'customers');
+      const allSources: Source[] = options?.companyResearchData || [];
+      
+      if (customerIntelligence.success && customerIntelligence.rawData) {
+        const customerSources = customerIntelligence.rawData.map((page: CrawledPage) => ({
+          url: page.url,
+          title: page.title || `${domain} - Customer Intelligence`,
+          content: page.markdown || '',
+          quality: 0.95,
+          summary: 'Customer case studies and success stories for ICP analysis',
+          metadata: {
+            intelligenceType: 'customer_analysis',
+            discoveryMethod: 'search',
+            crawledAt: new Date().toISOString()
+          }
+        }));
+        
+        allSources.push(...customerSources);
+        onEvent({ type: 'found', sources: customerSources, query: 'Customer case studies and testimonials' });
+        onEvent({ type: 'thinking', message: `✅ Found ${customerSources.length} customer case studies for pattern analysis` });
+      }
+
+      // Phase 2: Competitor customer analysis for market validation
+      onEvent({ type: 'phase-update', phase: 'analyzing', message: 'Analyzing competitor customers for market validation...' });
+      
+      try {
+        const competitorSearch = await this.firecrawl.search(`"${domain}" OR "${domain.split('.')[0]}" customers OR "case study" OR testimonial OR "customer success" OR "client spotlight"`, {
+          limit: 10,
+          scrapeOptions: { formats: ['markdown'] }
+        });
+        
+        if (competitorSearch.data) {
+          const competitorCustomerSources = competitorSearch.data
+            .filter((result: SearchResultItem) => result.markdown && result.markdown.length > 300)
+            .map((result: SearchResultItem) => ({
+              url: result.url,
+              title: result.title || 'Market Customer Intelligence',
+              content: result.markdown || '',
+              quality: 0.8,
+              summary: 'Market customer intelligence for ICP validation',
+              metadata: {
+                intelligenceType: 'market_customers',
+                discoveryMethod: 'competitive_search'
+              }
+            }));
+          
+          allSources.push(...competitorCustomerSources);
+          onEvent({ type: 'thinking', message: `✅ Found ${competitorCustomerSources.length} market customer examples for validation` });
+        }
+      } catch {
+        onEvent({ type: 'thinking', message: '⚠️ Limited market customer data available - proceeding with company analysis' });
+      }
+
+      // Phase 3: Generate 3 specific ICP profiles
+      onEvent({ type: 'phase-update', phase: 'synthesizing', message: 'Creating 3 specific ICP profiles with target companies...' });
+      
+      const query = `Generate 3 specific ICP profiles based on ${domain}'s customer analysis`;
+      
+      const contentCb = (chunk: string) => {
+        onEvent({ type: 'content-chunk', chunk });
+      };
+
+      const icpReport = await this.generateICPReport(query, allSources, contentCb, options?.context);
+
+      onEvent({ 
+        type: 'final-result', 
+        content: icpReport, 
+        sources: allSources,
+        followUpQuestions: [
+          'Refine ICP profiles with additional customer research',
+          'Generate specific outreach sequences for each ICP',
+          'Identify high-priority prospect companies to target'
+        ]
+      });
+      
+      onEvent({ type: 'phase-update', phase: 'complete', message: `ICP analysis complete: 3 profiles created from ${allSources.length} sources` });
+      
+    } catch (error) {
+      onEvent({
+        type: 'error',
+        error: error instanceof Error ? error.message : 'ICP profile generation failed',
+        errorType: 'unknown',
+      });
+    }
+  }
+
+  private async generateICPReport(
+    query: string,
+    sources: Source[],
+    onChunk: (chunk: string) => void,
+    context?: { query: string; response: string }[]
+  ): Promise<string> {
+    const sourcesText = sources
+      .map((s, i) => {
+        if (!s.content) return `[${i + 1}] ${s.title}\n[No content available]`;
+        return `[${i + 1}] ${s.title}\n${s.content}`;
+      })
+      .join('\n\n');
+    
+    let contextPrompt = '';
+    if (context && context.length > 0) {
+      contextPrompt = '\n\nPrevious conversation for context:\n';
+      context.forEach(c => {
+        contextPrompt += `User: ${c.query}\nAssistant: ${c.response.substring(0, 300)}...\n\n`;
+      });
+    }
+    
+    const messages = [
+      new SystemMessage(`${this.getCurrentDateContext()}
+
+You are a specialized ICP (Ideal Customer Profile) analyst. Based on the provided customer case studies and company intelligence, create 3 specific ICP profiles with real target companies.
+
+CRITICAL INSTRUCTIONS:
+- Analyze customer case studies to identify patterns
+- Create 3 distinct ICP profiles based on actual customer data
+- Provide 5-7 real target companies for each ICP with specific reasoning
+- Include detailed firmographics and technographics
+
+ICP ANALYSIS STRUCTURE:
+
+1. CUSTOMER PATTERN ANALYSIS
+   - Extract patterns from case studies and customer testimonials
+   - Identify common characteristics among successful customers
+   - Note industry verticals, company sizes, use cases, and pain points
+   - Analyze customer journey and implementation patterns
+
+2. ICP PROFILE #1: [Primary Segment Name]
+   
+   **Profile Characteristics:**
+   - Industry/Vertical: [Specific industry]
+   - Company Size: [Employee count range]
+   - Revenue Range: [Annual revenue range]
+   - Geographic Focus: [Primary regions]
+   - Business Model: [B2B, B2C, etc.]
+   
+   **Firmographics:**
+   - Funding Stage: [Startup, Series A-C, Public, etc.]
+   - Growth Stage: [Early, Growth, Mature]
+   - Market Position: [Leader, Challenger, Niche]
+   - Geographic Presence: [Local, National, Global]
+   
+   **Technographics:**
+   - Current Tech Stack: [CRM, Marketing tools, etc.]
+   - Technology Maturity: [Basic, Intermediate, Advanced]
+   - Digital Transformation Stage: [Beginning, In-progress, Advanced]
+   - Integration Requirements: [API needs, platform connections]
+   
+   **Psychographics & Behaviors:**
+   - Pain Points: [Specific challenges they face]
+   - Buying Triggers: [What motivates purchase decisions]
+   - Decision-Making Process: [Committee, individual, etc.]
+   - Budget Allocation: [How they approach purchasing]
+   
+   **Target Job Roles:**
+   - Primary Decision Maker: [Title and seniority]
+   - Influencers: [Additional stakeholders]
+   - End Users: [Who actually uses the product]
+   - Budget Owner: [Who controls purchasing decisions]
+   
+   **TARGET COMPANIES FOR ICP #1:**
+   
+   | Company Name | Domain | Employees | Industry | Location | Reasoning |
+   |--------------|---------|-----------|----------|----------|-----------|
+   | [Company 1] | company1.com | 150-300 | [Industry] | [City, State] | [Specific reasoning based on patterns] |
+   | [Company 2] | company2.com | 200-400 | [Industry] | [City, State] | [Specific reasoning based on patterns] |
+   | [Company 3] | company3.com | 100-250 | [Industry] | [City, State] | [Specific reasoning based on patterns] |
+   | [Company 4] | company4.com | 180-350 | [Industry] | [City, State] | [Specific reasoning based on patterns] |
+   | [Company 5] | company5.com | 120-280 | [Industry] | [City, State] | [Specific reasoning based on patterns] |
+
+3. ICP PROFILE #2: [Secondary Segment Name]
+   [Same detailed structure as Profile #1]
+
+4. ICP PROFILE #3: [Tertiary Segment Name]
+   [Same detailed structure as Profile #1]
+
+5. ICP VALIDATION & PRIORITIZATION
+   
+   **Priority Ranking:**
+   1. ICP #1: [Reasoning for highest priority]
+   2. ICP #2: [Reasoning for medium priority]
+   3. ICP #3: [Reasoning for lower priority]
+   
+   **Market Validation:**
+   - Market Size: [Estimated TAM for each ICP]
+   - Competition Level: [How competitive each segment is]
+   - Sales Velocity: [Expected sales cycle length]
+   - Revenue Potential: [Average deal size and LTV]
+
+6. ACTIONABLE INSIGHTS
+   
+   **Key Differentiators by ICP:**
+   - What messaging resonates with each segment
+   - Unique value propositions for each ICP
+   - Common objections and how to address them
+   
+   **Outreach Strategy Foundation:**
+   - Best channels to reach each ICP
+   - Optimal timing for outreach
+   - Content preferences and communication style
+
+IMPORTANT REQUIREMENTS:
+- Base ICP profiles on actual customer patterns from case studies
+- Provide REAL company names and domains (research actual companies)
+- Include specific reasoning for why each target company fits the ICP
+- Ensure all 3 ICPs are distinct and actionable
+- Focus on companies that match the patterns of existing successful customers
+
+Formatting:
+- Use clear markdown tables for target companies
+- Add citations [1], [2], etc. when referencing customer case studies
+- Make ICPs specific and actionable for sales teams`),
+      new HumanMessage(`ICP Analysis Request: "${query}"${contextPrompt}\n\nBased on these customer intelligence sources:\n${sourcesText}`)
+    ];
+    
+    let fullText = '';
+    
+    try {
+      const stream = await this.streamingLlm.stream(messages);
+      
+      for await (const chunk of stream) {
+        const content = chunk.content;
+        if (typeof content === 'string') {
+          fullText += content;
+          onChunk(content);
+        }
+      }
+    } catch {
+      // Fallback to non-streaming if streaming fails
+      const response = await this.llm.invoke(messages);
+      fullText = response.content.toString();
+      onChunk(fullText);
+    }
+    
+    return fullText;
   }
 
   // Enhanced: Analyze dossier + conduct targeted website crawling for ICP research
@@ -400,15 +654,56 @@ export class LangGraphSearchEngine {
       
       const allSources: Source[] = [dossierSource];
       
-      // Crawl each competitor systematically
-      for (let i = 0; i < Math.min(competitorData.competitors.length, 5); i++) {
+      // Crawl each competitor systematically (HEAVILY OPTIMIZED: Circuit breaker for rate limits)
+      const maxCompetitorsToAnalyze = Math.min(competitorData.competitors.length, CRAWL_CONFIG.MAX_COMPETITORS_TO_ANALYZE);
+      let consecutiveRateLimitErrors = 0;
+      const maxConsecutiveRateLimitErrors = 2; // Stop if we hit 2 rate limits in a row
+      
+      for (let i = 0; i < maxCompetitorsToAnalyze; i++) {
         const domain = competitorData.competitors[i];
+        
+        // Circuit breaker: Stop if we've hit too many rate limits
+        if (consecutiveRateLimitErrors >= maxConsecutiveRateLimitErrors) {
+          onEvent({ 
+            type: 'thinking', 
+            message: `🛑 Stopping competitor analysis due to repeated rate limits. Proceeding with available data.` 
+          });
+          break;
+        }
+        
         onEvent({ type: 'thinking', message: `Crawling ${domain} - sitemap, customers, case studies, pricing…` });
         
-        const crawledSources = await this.crawlCompetitorWebsite(domain, onEvent);
-        allSources.push(...crawledSources);
+        // Add delay between competitor crawls to prevent rate limits
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, CRAWL_CONFIG.COMPETITOR_CRAWL_DELAY));
+        }
         
-        onEvent({ type: 'found', sources: crawledSources, query: `${domain} website crawl` });
+        try {
+          const crawledSources = await this.crawlCompetitorWebsite(domain, onEvent);
+          allSources.push(...crawledSources);
+          
+          onEvent({ type: 'found', sources: crawledSources, query: `${domain} website crawl` });
+          
+          // Reset rate limit counter on success
+          consecutiveRateLimitErrors = 0;
+          
+        } catch (error) {
+          const isRateLimit = error instanceof Error && 
+                             (error.message.includes('Rate limit') || error.message.includes('429'));
+          
+          if (isRateLimit) {
+            consecutiveRateLimitErrors++;
+            onEvent({ 
+              type: 'thinking', 
+              message: `⚠️ Rate limit hit for ${domain} (${consecutiveRateLimitErrors}/${maxConsecutiveRateLimitErrors}). ${consecutiveRateLimitErrors >= maxConsecutiveRateLimitErrors ? 'Stopping analysis.' : 'Continuing with caution.'}` 
+            });
+          } else {
+            onEvent({ 
+              type: 'thinking', 
+              message: `⚠️ Skipping ${domain} due to crawling limitations: ${error instanceof Error ? error.message : 'Unknown error'}` 
+            });
+          }
+        }
       }
 
       // Phase 3: Targeted customer extraction
@@ -457,7 +752,12 @@ Focus on extracting clean domains (example.com format) from the text.`),
       ];
 
       const response = await this.llm.invoke(messages);
-      const result = JSON.parse(response.content.toString());
+      let content = response.content.toString();
+      
+      // Strip markdown code blocks if present
+      content = content.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim();
+      
+      const result = JSON.parse(content);
       
       return {
         competitors: result.competitors || [],
@@ -476,10 +776,17 @@ Focus on extracting clean domains (example.com format) from the text.`),
     try {
       onEvent({ type: 'thinking', message: `🔍 Starting search-based intelligence discovery for ${domain}...` });
 
-      // Use search-first intelligence gathering for different aspects
-      const intelligenceTypes = ['pricing', 'team', 'customers', 'products'] as const;
+      // Use search-first intelligence gathering for different aspects (HEAVILY OPTIMIZED: Reduced scope)
+      const intelligenceTypes = ['pricing', 'customers'] as const; // REDUCED: Only essential intelligence types
       
-      for (const intelligenceType of intelligenceTypes) {
+      for (let i = 0; i < intelligenceTypes.length; i++) {
+        const intelligenceType = intelligenceTypes[i];
+        
+        // Add delay between intelligence types to prevent rate limits
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 8000)); // 8-second delay (increased from 3s)
+        }
+        
         try {
           onEvent({ type: 'thinking', message: `🎯 Discovering ${intelligenceType} pages for ${domain} via search...` });
           
@@ -1762,6 +2069,118 @@ Instructions:
     }
   }
 
+  private async generateCompanyResearchReport(
+    query: string,
+    sources: Source[],
+    onChunk: (chunk: string) => void,
+    context?: { query: string; response: string }[]
+  ): Promise<string> {
+    const sourcesText = sources
+      .map((s, i) => {
+        if (!s.content) return `[${i + 1}] ${s.title}\n[No content available]`;
+        return `[${i + 1}] ${s.title}\n${s.content}`;
+      })
+      .join('\n\n');
+    
+    let contextPrompt = '';
+    if (context && context.length > 0) {
+      contextPrompt = '\n\nPrevious conversation for context:\n';
+      context.forEach(c => {
+        contextPrompt += `User: ${c.query}\nAssistant: ${c.response.substring(0, 300)}...\n\n`;
+      });
+    }
+    
+    const messages = [
+      new SystemMessage(`${this.getCurrentDateContext()}
+
+You are a specialized company research analyst. Based on the provided sources, create a comprehensive company research report focusing ONLY on the target company analysis. DO NOT create ICP profiles or prospect lists.
+
+COMPANY RESEARCH REPORT STRUCTURE:
+
+1. EXECUTIVE SUMMARY (10-15 bullet points)
+   - Market Position & Value Proposition
+   - Business Model & Revenue Streams
+   - Pricing Strategy & Go-to-Market Approach
+   - Leadership Team & Organizational Strength
+   - Technology Stack & Competitive Advantages
+   - Growth Stage & Market Opportunity
+   - Partnership Ecosystem & Channel Strategy
+   - Risk Factors & Market Challenges
+
+2. DETAILED COMPANY ANALYSIS
+   - Company Overview & Mission
+   - Product & Service Portfolio
+   - Pricing & Packaging Strategy
+   - Leadership & Organizational Structure
+   - Technology & Security Profile
+   - Marketing & Content Strategy
+   - Sales Process & Customer Acquisition
+   - Partnership & Channel Strategy
+   - Competitive Positioning
+   - Financial Health & Growth Indicators
+
+3. CUSTOMER ANALYSIS (for understanding their business, NOT for ICP creation)
+   - Customer Case Studies & Success Stories
+   - Customer Testimonials & Feedback
+   - Customer Journey & Implementation Process
+   - Customer Support & Success Programs
+   - Customer Retention & Expansion Strategies
+
+4. COMPANY INTELLIGENCE TABLES
+   - Key Facts Summary (company details, pricing, technology, compliance)
+   - Leadership Matrix (key personnel with backgrounds and expertise)
+   - Content Inventory (available resources and marketing materials)
+   - Social Media Presence (platform activity and engagement)
+
+5. COMPETITIVE LANDSCAPE
+   - Direct Competitors & Market Positioning
+   - Competitive Advantages & Differentiators
+   - Market Share & Industry Standing
+   - Competitive Threats & Opportunities
+
+6. BUSINESS INTELLIGENCE
+   - Revenue Model & Monetization Strategy
+   - Growth Trajectory & Market Expansion
+   - Technology Infrastructure & Scalability
+   - Funding History & Financial Backing
+   - Strategic Partnerships & Alliances
+
+IMPORTANT GUIDELINES:
+- Focus ONLY on analyzing the target company
+- Extract factual information from customer case studies to understand their business
+- Do NOT create ICP profiles, prospect lists, or outreach strategies
+- Do NOT suggest companies to target or contact strategies
+- Provide comprehensive company intelligence only
+
+Formatting:
+- Use clear markdown subsections
+- Add citations [1], [2], etc. next to claims
+- Keep analysis focused on the target company only`),
+      new HumanMessage(`Company Research Request: "${query}"${contextPrompt}\n\nBased on these company intelligence sources:\n${sourcesText}`)
+    ];
+    
+    let fullText = '';
+    
+    try {
+      const stream = await this.streamingLlm.stream(messages);
+      
+      for await (const chunk of stream) {
+        const content = chunk.content;
+        if (typeof content === 'string') {
+          fullText += content;
+          onChunk(content);
+        }
+      }
+    } catch {
+      // Fallback to non-streaming if streaming fails
+      const response = await this.llm.invoke(messages);
+      fullText = response.content.toString();
+      onChunk(fullText);
+    }
+    
+    return fullText;
+  }
+
   private async generateStreamingAnswer(
     query: string,
     sources: Source[],
@@ -1821,63 +2240,18 @@ INTELLIGENCE REPORT STRUCTURE:
 6. SOCIAL MEDIA INTELLIGENCE DASHBOARD
    - Platform presence and engagement metrics
 
-7. DEEP ICP RESEARCH & COMPETITOR CUSTOMER INTELLIGENCE (CRITICAL)
-   Execute this comprehensive methodology to identify specific prospects:
-
-   A) COMPETITOR ANALYSIS & CUSTOMER EXTRACTION:
-   - Direct Competitors: List all competitors mentioned, their market positioning, and differentiation
-   - Competitor Customers: Extract SPECIFIC company names, domains, and case studies from competitor websites/content
-   - Customer Wins/Losses: Identify companies that switched between solutions or announced partnerships
-   - Technology Integrations: Find companies using complementary tech stacks that indicate buying intent
-
-   B) DEEP ICP PROFILING WITH REAL COMPANIES:
-   - Industry Deep-Dive: For each vertical, list 10-20 SPECIFIC companies (with domains) that fit the profile
-   - Company Size Analysis: Break down by employee count, revenue bands, funding stage (if available)
-   - Geographic Distribution: Map companies by regions, noting expansion patterns
-   - Technology Stack: Identify common tools, platforms, and integrations used by prospects
-
-   C) ACTIONABLE PROSPECT DATABASE:
-   Create detailed prospect lists for each ICP with:
-   - Company Name & Domain
-   - Industry & Subsegment
-   - Employee Count (estimated)
-   - Location (City, State/Country)
-   - Technology Stack (CRM, LMS, etc.)
-   - Recent News/Triggers (funding, hiring, expansion)
-   - Decision Maker Titles (specific names if available)
-   - Contact Strategy (LinkedIn, email patterns, warm intro paths)
-
-   D) COMPETITOR CUSTOMER POACHING OPPORTUNITIES:
-   - List 15-25 companies currently using competitor solutions
-   - Identify pain points/gaps in competitor offerings
-   - Note contract renewal timelines (if available)
-   - Suggest competitive angles and messaging
-
-   E) VALIDATION & PRIORITIZATION:
-   - Tier prospects: Hot (ready to buy), Warm (showing interest), Cold (fit profile)
-   - Provide specific outreach sequences for each tier
-   - Include exact LinkedIn search strings and email discovery methods
-   - Note referral/partnership introduction opportunities
-
-   F) IMMEDIATE ACTION PLAN:
-   Create a 30-60-90 day outreach calendar with:
-   - Week 1-2: Top 10 highest priority prospects with personalized approach
-   - Month 1: Broader outreach to warm prospects with value-driven content
-   - Month 2-3: Nurture sequences and competitive displacement campaigns
-
-   USER VALIDATION CHECKPOINT:
-   Review the prospect database and confirm:
-   □ ICP definitions are accurate and actionable
-   □ Company lists contain real, reachable prospects  
-   □ Competitive intelligence is comprehensive
-   □ Outreach strategies are realistic and ethical
-   
-   Provide feedback: [Approve] [Refine ICPs] [Add more prospects] [Adjust strategy]
+7. COMPETITIVE INTELLIGENCE & MARKET ANALYSIS
+   - Market Positioning: How the company positions itself relative to competitors
+   - Competitive Advantages: Unique value propositions and differentiators  
+   - Market Trends: Industry trends and market dynamics affecting the company
+   - Competitor Landscape: Overview of key competitors and market positioning
+   - Strategic Insights: Business strategy insights and market opportunities
 
 Formatting:
 - Use clear markdown subsections.
 - Add citations [1], [2], etc. next to claims.
-- Keep the validation prompt clearly labeled at the end.`),
+- Focus on actionable intelligence and strategic insights.
+- Conclude with follow-up recommendations for deeper analysis.`),
       new HumanMessage(`Intelligence Research Request: "${query}"${contextPrompt}\n\nBased on these intelligence sources:\n${sourcesText}`)
     ];
     

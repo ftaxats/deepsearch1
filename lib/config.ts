@@ -29,14 +29,14 @@ export const SEARCH_CONFIG = {
 
 // Enhanced Crawling Configuration
 export const CRAWL_CONFIG = {
-  // Website Intelligence Gathering
-  DEFAULT_CRAWL_LIMIT: 50,       // Default number of pages to crawl per website
-  MAX_CRAWL_LIMIT: 100,          // Maximum pages to crawl for comprehensive analysis
-  INTELLIGENCE_CRAWL_LIMIT: 20,  // Pages per intelligence type (pricing, team, etc.)
+  // Website Intelligence Gathering (OPTIMIZED for rate limits)
+  DEFAULT_CRAWL_LIMIT: 25,       // REDUCED: Default number of pages to crawl per website
+  MAX_CRAWL_LIMIT: 50,           // REDUCED: Maximum pages to crawl for comprehensive analysis
+  INTELLIGENCE_CRAWL_LIMIT: 10,  // REDUCED: Pages per intelligence type (pricing, team, etc.)
   
-  // Competitor Analysis
-  MAX_COMPETITORS_TO_ANALYZE: 3, // Maximum competitors to analyze in parallel
-  COMPETITOR_CRAWL_DELAY: 1000,  // Delay between competitor crawls (ms)
+  // Competitor Analysis (HEAVILY OPTIMIZED for rate limits)
+  MAX_COMPETITORS_TO_ANALYZE: 1, // HEAVILY REDUCED: Maximum competitors to analyze (sequential)
+  COMPETITOR_CRAWL_DELAY: 10000, // HEAVILY INCREASED: Delay between competitor crawls (ms)
   
   // Content Quality Thresholds
   MIN_PAGE_CONTENT_LENGTH: 200,  // Minimum content length for page to be valuable
@@ -51,10 +51,10 @@ export const CRAWL_CONFIG = {
     competitors: 0.75            // Medium priority for competitive intelligence
   },
   
-  // Search-Based Discovery Settings
-  SEARCH_QUERIES_PER_TYPE: 3,   // Number of search queries per intelligence type
-  URL_DISCOVERY_LIMIT: 20,      // Maximum URLs to discover per intelligence type
-  RELEVANCE_SCORE_THRESHOLD: 0.4, // Minimum relevance score for discovered URLs
+  // Search-Based Discovery Settings (HEAVILY OPTIMIZED for rate limits)
+  SEARCH_QUERIES_PER_TYPE: 1,   // REDUCED: Single comprehensive query per intelligence type
+  URL_DISCOVERY_LIMIT: 5,       // HEAVILY REDUCED: Maximum URLs to discover per intelligence type  
+  RELEVANCE_SCORE_THRESHOLD: 0.7, // HEAVILY INCREASED: Higher threshold for better quality
   
   // Content Filtering (for excluding low-value content)
   EXCLUDE_PATTERNS: [

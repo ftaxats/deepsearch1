@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { search, analyzeICP } from './search';
+import { search, analyzeICP, analyzeCompanyIntelligence, generateICPProfiles } from './search';
 import { readStreamableValue } from 'ai/rsc';
 import { SearchDisplay } from './search-display';
 import { SearchEvent, Source } from '@/lib/langgraph-search-engine';
@@ -559,6 +559,128 @@ export function Chat() {
     }
   };
 
+  // Helper function to detect if input is a URL
+  const isUrl = (text: string): boolean => {
+    try {
+      new URL(text);
+      return true;
+    } catch {
+      return /^https?:\/\//.test(text) || /^www\./.test(text) || /\.(com|org|net|edu|gov|io|co|ai|tech|dev)/.test(text);
+    }
+  };
+
+  // New function for company research
+  const performCompanyResearch = async (url: string) => {
+    setIsSearching(true);
+
+    const assistantMsgId = (Date.now() + 1).toString();
+    const events: SearchEvent[] = [];
+
+    setMessages(prev => [...prev, {
+      id: assistantMsgId,
+      role: 'assistant',
+      content: <SearchDisplay events={events} />,
+      isSearch: true
+    }]);
+
+    try {
+      const conversationContext: Array<{ query: string; response: string }> = [];
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        if (msg.role === 'user' && i + 1 < messages.length) {
+          const nextMsg = messages[i + 1];
+          if (nextMsg.role === 'assistant' && nextMsg.searchResults) {
+            conversationContext.push({
+              query: msg.content as string,
+              response: nextMsg.searchResults
+            });
+          }
+        }
+      }
+
+      // Ensure URL has protocol
+      const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+
+      const { stream } = await analyzeCompanyIntelligence(fullUrl, {
+        context: conversationContext
+      }, firecrawlApiKey || undefined);
+
+      let finalContent = '';
+      let streamingStarted = false;
+      const resultMsgId = (Date.now() + 2).toString();
+
+      for await (const event of readStreamableValue(stream)) {
+        if (!event) continue;
+
+        events.push(event);
+        
+        // Update the search display
+        setMessages(prev => prev.map(msg => 
+          msg.id === assistantMsgId 
+            ? { ...msg, content: <SearchDisplay events={[...events]} /> }
+            : msg
+        ));
+
+        if (event.type === 'content-chunk') {
+          if (!streamingStarted) {
+            streamingStarted = true;
+            // Add the result message
+            setMessages(prev => [...prev, {
+              id: resultMsgId,
+              role: 'assistant',
+              content: '',
+              isSearch: false
+            }]);
+          }
+          
+          finalContent += event.chunk;
+          
+          // Update the result message with new content
+          setMessages(prev => prev.map(msg => 
+            msg.id === resultMsgId 
+              ? { ...msg, content: <MarkdownRenderer content={finalContent} /> }
+              : msg
+          ));
+        } else if (event.type === 'final-result') {
+          finalContent = event.content;
+          
+          if (!streamingStarted) {
+            setMessages(prev => [...prev, {
+              id: resultMsgId,
+              role: 'assistant',
+              content: <MarkdownRenderer content={finalContent} />,
+              isSearch: false,
+              searchResults: finalContent
+            }]);
+          } else {
+            setMessages(prev => prev.map(msg => 
+              msg.id === resultMsgId 
+                ? { ...msg, content: <MarkdownRenderer content={finalContent} />, searchResults: finalContent }
+                : msg
+            ));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Company research error:', error);
+      setMessages(prev => prev.filter(msg => msg.id !== assistantMsgId));
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during company research';
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: (
+          <div className="p-4 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <p className="text-red-700 dark:text-red-300 font-medium">Company Research Error</p>
+            <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errorMessage}</p>
+          </div>
+        ),
+        isSearch: false
+      }]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) {
       e.preventDefault();
@@ -595,8 +717,18 @@ export function Chat() {
       isSearch: true
     }]);
 
-    // Perform the search
-    await performSearch(userMessage);
+    // Determine what type of analysis to perform
+    if (activeTab === 'research') {
+      // If it's a URL, perform company research; otherwise regular search
+      if (isUrl(userMessage)) {
+        await performCompanyResearch(userMessage);
+      } else {
+        await performSearch(userMessage);
+      }
+    } else {
+      // ICP tab - this would be for ICP generation (not implemented in UI yet)
+      await performSearch(userMessage);
+    }
   };
 
   return (

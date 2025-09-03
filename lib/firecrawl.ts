@@ -423,12 +423,21 @@ export class FirecrawlClient {
     const discoveredUrls: Array<{url: string, title: string, relevanceScore: number}> = [];
     const seenUrls = new Set<string>();
 
-    for (const query of searchQueries) {
+    for (let i = 0; i < searchQueries.length; i++) {
+      const query = searchQueries[i];
+      
+      // Add delay between requests to avoid rate limits (except for first request)
+      if (i > 0) {
+        await this.delay(5000); // 5 second delay between requests (increased from 2s)
+      }
+      
       try {
-        const searchResults = await this.search(query, {
-          limit: Math.ceil(limit / searchQueries.length),
-          scrapeOptions: false // Don't scrape yet, just discover URLs
-        });
+        const searchResults = await this.retryWithBackoff(() => 
+          this.search(query, {
+            limit: Math.ceil(limit / searchQueries.length),
+            scrapeOptions: false // Don't scrape yet, just discover URLs
+          })
+        );
 
         if (searchResults.data) {
           searchResults.data.forEach((result: any) => {
@@ -577,17 +586,31 @@ export class FirecrawlClient {
         intelligence: primaryIntel
       });
 
-      // Analyze known competitors
-      for (const competitor of knownCompetitors.slice(0, 3)) { // Limit to avoid rate limits
-        const competitorIntel = await this.gatherWebsiteIntelligence(competitor, 'comprehensive');
-        competitorIntelligence.push({
-          domain: competitor,
-          type: 'competitor',
-          intelligence: competitorIntel
-        });
-
-        // Small delay to be respectful
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      // Analyze known competitors (OPTIMIZED: Sequential processing with proper delays)
+      const maxCompetitors = Math.min(knownCompetitors.length, CRAWL_CONFIG.MAX_COMPETITORS_TO_ANALYZE);
+      
+      for (let i = 0; i < maxCompetitors; i++) {
+        const competitor = knownCompetitors[i];
+        
+        // Add delay before each competitor (except the first)
+        if (i > 0) {
+          await this.delay(CRAWL_CONFIG.COMPETITOR_CRAWL_DELAY);
+        }
+        
+        try {
+          const competitorIntel = await this.retryWithBackoff(() => 
+            this.gatherWebsiteIntelligence(competitor, 'comprehensive')
+          );
+          
+          competitorIntelligence.push({
+            domain: competitor,
+            type: 'competitor',
+            intelligence: competitorIntel
+          });
+        } catch (error) {
+          console.log(`Skipping competitor ${competitor} due to rate limits:`, error);
+          // Continue with next competitor instead of failing entirely
+        }
       }
 
       return {
@@ -685,29 +708,67 @@ export class FirecrawlClient {
   }
 
   /**
+   * Add delay between requests
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Retry function with exponential backoff for rate limit errors
+   */
+  private async retryWithBackoff<T>(
+    fn: () => Promise<T>, 
+    maxRetries = 2, // REDUCED: Fewer retries to fail faster
+    baseDelay = 2000 // INCREASED: Longer base delay
+  ): Promise<T> {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        // Check if it's a rate limit error (429)
+        const isRateLimit = error?.response?.status === 429 || 
+                           error?.statusCode === 429 || 
+                           error?.message?.includes('Rate limit exceeded');
+        
+        if (isRateLimit && attempt < maxRetries) {
+          // Extract wait time from error message if available
+          const waitTimeMatch = error?.message?.match(/retry after (\d+)s/);
+          const waitTime = waitTimeMatch ? parseInt(waitTimeMatch[1]) * 1000 : 
+                          baseDelay * Math.pow(2, attempt); // Exponential backoff
+          
+          console.log(`Rate limit hit, waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
+          await this.delay(waitTime);
+          continue;
+        }
+        
+        // If not a rate limit error or max retries reached, throw the error
+        throw error;
+      }
+    }
+    throw new Error('Max retries exceeded');
+  }
+
+  /**
    * Get search queries for a specific intelligence type
    */
   private getSearchQueriesForType(domain: string, type: string): string[] {
+    // OPTIMIZED: Single comprehensive query per type to reduce API calls
     const queryMap: { [key: string]: string[] } = {
       pricing: [
-        `site:${domain} (pricing OR plans OR cost OR subscription OR enterprise)`,
-        `site:${domain} ("pricing" OR "plans" OR "cost" OR "enterprise pricing")`,
-        `site:${domain} (price OR billing OR payment OR subscription)`
+        `site:${domain} (pricing OR plans OR cost OR subscription OR enterprise OR billing OR payment)`
       ],
       team: [
-        `site:${domain} (team OR leadership OR founders OR executives OR about)`,
-        `site:${domain} ("team" OR "leadership" OR "founders" OR "executives")`,
-        `site:${domain} ("about us" OR "our team" OR "management" OR "staff")`
+        `site:${domain} (team OR leadership OR founders OR executives OR about OR management OR staff)`
       ],
       customers: [
-        `site:${domain} (customers OR "case studies" OR testimonials OR clients OR "success stories")`,
-        `site:${domain} ("customer" OR "case study" OR "testimonial" OR "client")`,
-        `site:${domain} ("our customers" OR "customer success" OR "client testimonials")`
+        `site:${domain} (customers OR "case studies" OR testimonials OR clients OR "success stories" OR "customer success")`
       ],
       products: [
-        `site:${domain} (products OR features OR solutions OR platform OR services)`,
-        `site:${domain} ("products" OR "features" OR "solutions" OR "platform")`,
-        `site:${domain} ("our products" OR "product features" OR "what we offer")`
+        `site:${domain} (products OR features OR solutions OR platform OR services OR "what we offer")`
+      ],
+      competitors: [
+        `site:${domain} (competitors OR alternatives OR "vs" OR comparison OR competitive)`
       ]
     };
     
