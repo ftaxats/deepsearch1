@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { search, analyzeICP, analyzeCompanyIntelligence, generateICPProfiles } from './search';
+import { search, analyzeICP, analyzeCompanyIntelligence } from './search';
 import { readStreamableValue } from 'ai/rsc';
 import { SearchDisplay } from './search-display';
 import { SearchEvent, Source } from '@/lib/langgraph-search-engine';

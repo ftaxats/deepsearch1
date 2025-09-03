@@ -2,7 +2,7 @@
 
 import { createStreamableValue } from 'ai/rsc';
 import { FirecrawlClient } from '@/lib/firecrawl';
-import { LangGraphSearchEngine as SearchEngine, SearchEvent } from '@/lib/langgraph-search-engine';
+import { LangGraphSearchEngine as SearchEngine, SearchEvent, Source } from '@/lib/langgraph-search-engine';
 
 export async function search(query: string, context?: { query: string; response: string }[], apiKey?: string) {
   const stream = createStreamableValue<SearchEvent>();
@@ -81,7 +81,7 @@ export async function analyzeCompanyIntelligence(
 export async function generateICPProfiles(
   companyUrl: string,
   options?: {
-    companyResearchData?: any[];
+    companyResearchData?: Source[];
     context?: { query: string; response: string }[];
   },
   apiKey?: string
