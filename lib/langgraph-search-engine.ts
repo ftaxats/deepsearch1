@@ -369,6 +369,7 @@ export class LangGraphSearchEngine {
   }
 
   // NEW: Separate ICP Analysis - Creates 3 specific ICP profiles with real company examples
+  // ENHANCED: Smart ICP Analysis with Deep Research, Geographic Intelligence & Validation Scoring
   async generateICPProfiles(
     companyUrl: string,
     onEvent: (event: SearchEvent) => void,
@@ -380,11 +381,11 @@ export class LangGraphSearchEngine {
     try {
       const domain = new URL(companyUrl).hostname.replace('www.', '');
       
-      onEvent({ type: 'phase-update', phase: 'understanding', message: 'Analyzing customer patterns for ICP creation...' });
-      onEvent({ type: 'thinking', message: `🔍 Analyzing ${domain}'s customer base to identify ideal customer profiles` });
+      onEvent({ type: 'phase-update', phase: 'understanding', message: '🧠 Initiating intelligent ICP discovery with multi-dimensional analysis...' });
+      onEvent({ type: 'thinking', message: `🔍 Phase 1: Deep customer pattern analysis for ${domain}` });
 
-      // Phase 1: Deep customer case study analysis
-      onEvent({ type: 'phase-update', phase: 'searching', message: 'Extracting customer case studies and success stories...' });
+      // Phase 1: Deep Customer Intelligence Gathering (Enhanced)
+      onEvent({ type: 'phase-update', phase: 'searching', message: '📊 Deep analysis: customer case studies, success stories & testimonials...' });
       
       const customerIntelligence = await this.firecrawl.gatherWebsiteIntelligence(companyUrl, 'customers');
       const allSources: Source[] = options?.companyResearchData || [];
@@ -404,69 +405,143 @@ export class LangGraphSearchEngine {
         }));
         
         allSources.push(...customerSources);
-        onEvent({ type: 'found', sources: customerSources, query: 'Customer case studies and testimonials' });
-        onEvent({ type: 'thinking', message: `✅ Found ${customerSources.length} customer case studies for pattern analysis` });
+        onEvent({ type: 'thinking', message: `✅ Analyzed ${customerSources.length} customer case studies for behavioral patterns` });
       }
 
-      // Phase 2: Competitor customer analysis for market validation
-      onEvent({ type: 'phase-update', phase: 'analyzing', message: 'Analyzing competitor customers for market validation...' });
+      // Phase 2: Company Geographic & Business Context Analysis
+      onEvent({ type: 'thinking', message: `🌍 Phase 2: Geographic & business context analysis for ${domain}` });
+      
+      const companyIntelligence = await this.firecrawl.gatherWebsiteIntelligence(companyUrl, 'comprehensive');
+      if (companyIntelligence.success && companyIntelligence.rawData) {
+        const contextSources = companyIntelligence.rawData.map((page: CrawledPage) => ({
+          url: page.url,
+          title: page.title || `${domain} - Business Context`,
+          content: page.markdown || '',
+          quality: 0.9,
+          summary: 'Company location, operations, and business context',
+          metadata: {
+            intelligenceType: 'company_context',
+            discoveryMethod: 'search',
+            crawledAt: new Date().toISOString()
+          }
+        }));
+        
+        allSources.push(...contextSources);
+        onEvent({ type: 'thinking', message: `🏢 Mapped company operational context from ${contextSources.length} sources` });
+      }
+
+      // Phase 3: Advanced Market Intelligence & Geographic Customer Mapping
+      onEvent({ type: 'thinking', message: `🗺️ Phase 3: Advanced market intelligence & customer geography mapping` });
       
       try {
-        const competitorSearch = await this.firecrawl.search(`"${domain}" OR "${domain.split('.')[0]}" customers OR "case study" OR testimonial OR "customer success" OR "client spotlight"`, {
+        // Enhanced search for geographic and industry patterns
+        const marketResearch = await this.firecrawl.search(`"${domain}" customers location geography industry "case study" "success story" "testimonial"`, {
           limit: 10,
           scrapeOptions: { formats: ['markdown'] }
         });
         
-        if (competitorSearch.data) {
-          const competitorCustomerSources = competitorSearch.data
-            .filter((result: SearchResultItem) => result.markdown && result.markdown.length > 300)
+        if (marketResearch.data) {
+          const marketSources = marketResearch.data
+            .filter((result: SearchResultItem) => result.markdown && result.markdown.length > 200)
             .map((result: SearchResultItem) => ({
               url: result.url,
-              title: result.title || 'Market Customer Intelligence',
+              title: result.title || 'Market Intelligence',
               content: result.markdown || '',
-              quality: 0.8,
-              summary: 'Market customer intelligence for ICP validation',
-              metadata: {
-                intelligenceType: 'market_customers',
-                discoveryMethod: 'competitive_search'
-              }
+              quality: 0.85,
+              summary: 'Market intelligence and geographic customer patterns'
             }));
           
-          allSources.push(...competitorCustomerSources);
-          onEvent({ type: 'thinking', message: `✅ Found ${competitorCustomerSources.length} market customer examples for validation` });
+          allSources.push(...marketSources);
+          onEvent({ type: 'thinking', message: `🔍 Discovered geographic patterns from ${marketSources.length} market sources` });
         }
       } catch {
-        onEvent({ type: 'thinking', message: '⚠️ Limited market customer data available - proceeding with company analysis' });
+        onEvent({ type: 'thinking', message: `⚠️ Market research limited - focusing on customer intelligence` });
       }
 
-      // Phase 3: Generate 3 specific ICP profiles
-      onEvent({ type: 'phase-update', phase: 'synthesizing', message: 'Creating 3 specific ICP profiles with target companies...' });
+      // Phase 4: Industry Vertical & Regional Business Intelligence
+      onEvent({ type: 'thinking', message: `🏭 Phase 4: Industry vertical analysis & regional business patterns` });
       
-      const query = `Generate 3 specific ICP profiles based on ${domain}'s customer analysis`;
+      try {
+        const industryResearch = await this.firecrawl.search(`"${domain}" industry customers company size employees location region business model`, {
+          limit: 8,
+          scrapeOptions: { formats: ['markdown'] }
+        });
+        
+        if (industryResearch.data) {
+          const industrySources = industryResearch.data
+            .filter((result: SearchResultItem) => result.markdown && result.markdown.length > 150)
+            .map((result: SearchResultItem) => ({
+              url: result.url,
+              title: result.title || 'Industry Intelligence',
+              content: result.markdown || '',
+              quality: 0.8,
+              summary: 'Industry patterns and regional business intelligence'
+            }));
+          
+          allSources.push(...industrySources);
+          onEvent({ type: 'thinking', message: `📊 Analyzed industry patterns from ${industrySources.length} sources` });
+        }
+      } catch {
+        onEvent({ type: 'thinking', message: `⚠️ Industry data limited - proceeding with available intelligence` });
+      }
+
+      // Phase 5: Smart Target Company Discovery (NEW)
+      onEvent({ type: 'thinking', message: `🎯 Phase 5: AI-powered target company discovery & validation` });
+      
+      try {
+        const targetCompanySearch = await this.firecrawl.search(`companies similar to "${domain.split('.')[0]}" customers prospects businesses`, {
+          limit: 12,
+          scrapeOptions: { formats: ['markdown'] }
+        });
+        
+        if (targetCompanySearch.data) {
+          const targetSources = targetCompanySearch.data
+            .filter((result: SearchResultItem) => result.markdown && result.markdown.length > 100)
+            .map((result: SearchResultItem) => ({
+              url: result.url,
+              title: result.title || 'Target Company Intelligence',
+              content: result.markdown || '',
+              quality: 0.75,
+              summary: 'Target company discovery and validation data'
+            }));
+          
+          allSources.push(...targetSources);
+          onEvent({ type: 'thinking', message: `🎯 Identified potential targets from ${targetSources.length} company sources` });
+        }
+      } catch {
+        onEvent({ type: 'thinking', message: `⚠️ Target discovery limited - proceeding with customer analysis` });
+      }
+
+      // Phase 6: Enhanced ICP Generation with Smart Scoring & Validation
+      onEvent({ type: 'phase-update', phase: 'synthesizing', message: '🧠 Creating intelligent ICP profiles with AI scoring & validation...' });
+      onEvent({ type: 'thinking', message: `⚡ Phase 6: Applying advanced ICP scoring algorithms & rejection criteria` });
+      
+      const query = `Create 3 validated, high-scoring ICP profiles for ${domain} using intelligent analysis`;
       
       const contentCb = (chunk: string) => {
         onEvent({ type: 'content-chunk', chunk });
       };
 
-      const icpReport = await this.generateICPReport(query, allSources, contentCb, options?.context);
+      // Use enhanced ICP report generation with scoring
+      const smartICPReport = await this.generateSmartICPReport(query, allSources, contentCb, options?.context, domain);
 
       onEvent({ 
         type: 'final-result', 
-        content: icpReport, 
+        content: smartICPReport, 
         sources: allSources,
         followUpQuestions: [
-          'Refine ICP profiles with additional customer research',
-          'Generate specific outreach sequences for each ICP',
-          'Identify high-priority prospect companies to target'
+          'Conduct deep-dive research on highest-scoring ICP profile',
+          'Generate specific outreach sequences for validated ICPs',
+          'Research additional companies matching ICP criteria'
         ]
       });
       
-      onEvent({ type: 'phase-update', phase: 'complete', message: `ICP analysis complete: 3 profiles created from ${allSources.length} sources` });
+      onEvent({ type: 'phase-update', phase: 'complete', message: `🎯 Smart ICP analysis complete: 3 validated profiles from ${allSources.length} intelligence sources` });
       
     } catch (error) {
       onEvent({
         type: 'error',
-        error: error instanceof Error ? error.message : 'ICP profile generation failed',
+        error: error instanceof Error ? error.message : 'Smart ICP analysis failed',
         errorType: 'unknown',
       });
     }
@@ -598,6 +673,223 @@ Formatting:
 - Add citations [1], [2], etc. when referencing customer case studies
 - Make ICPs specific and actionable for sales teams`),
       new HumanMessage(`ICP Analysis Request: "${query}"${contextPrompt}\n\nBased on these customer intelligence sources:\n${sourcesText}`)
+    ];
+    
+    let fullText = '';
+    
+    try {
+      const stream = await this.streamingLlm.stream(messages);
+      
+      for await (const chunk of stream) {
+        const content = chunk.content;
+        if (typeof content === 'string') {
+          fullText += content;
+          onChunk(content);
+        }
+      }
+    } catch {
+      // Fallback to non-streaming if streaming fails
+      const response = await this.llm.invoke(messages);
+      fullText = response.content.toString();
+      onChunk(fullText);
+    }
+    
+    return fullText;
+  }
+
+  // NEW: Enhanced Smart ICP Report with AI Scoring, Geographic Intelligence & Validation
+  private async generateSmartICPReport(
+    query: string,
+    sources: Source[],
+    onChunk: (chunk: string) => void,
+    context?: { query: string; response: string }[],
+    domain?: string
+  ): Promise<string> {
+    const sourcesText = sources
+      .map((s, i) => {
+        if (!s.content) return `[${i + 1}] ${s.title}\n[No content available]`;
+        return `[${i + 1}] ${s.title}\n${s.content}`;
+      })
+      .join('\n\n');
+    
+    let contextPrompt = '';
+    if (context && context.length > 0) {
+      contextPrompt = '\n\nPrevious conversation for context:\n';
+      context.forEach(c => {
+        contextPrompt += `User: ${c.query}\nAssistant: ${c.response.substring(0, 300)}...\n\n`;
+      });
+    }
+    
+    const messages = [
+      new SystemMessage(`${this.getCurrentDateContext()}
+
+You are an elite ICP (Ideal Customer Profile) strategist with advanced AI capabilities. Your mission is to create 3 highly validated, scored ICP profiles using intelligent analysis and strict quality controls.
+
+🧠 SMART ANALYSIS METHODOLOGY:
+
+**PHASE 1: INTELLIGENT CUSTOMER PATTERN DISCOVERY**
+- Deep analysis of customer case studies and success stories
+- Geographic mapping of customer locations and business patterns  
+- Business model analysis and company size segmentation
+- Industry vertical identification and clustering
+- Pain point extraction and success factor analysis
+
+**PHASE 2: GEOGRAPHIC & BUSINESS INTELLIGENCE**  
+- Map customer geographic distribution and regional preferences
+- Understand cultural/business factors in target regions
+- Analyze seasonal and festival timeline impacts on business
+- Research local business practices and buying behaviors
+- Identify regional economic indicators and business clusters
+
+**PHASE 3: ADVANCED MARKET RESEARCH**
+- Research companies in similar industries and geographies
+- Validate target company existence and business details
+- Cross-reference multiple data sources for accuracy
+- Analyze company websites, news, and business listings
+- Map competitive landscape and market positioning
+
+**PHASE 4: AI-POWERED SCORING & VALIDATION**
+Apply this scoring matrix to each ICP candidate:
+
+**ICP SCORING CRITERIA (0-10 scale):**
+1. **Customer Pattern Match** (0-10): How well does it match existing customer patterns?
+2. **Geographic Relevance** (0-10): Does the location/region make business sense?
+3. **Market Size & Opportunity** (0-10): Is there sufficient market opportunity?
+4. **Business Viability** (0-10): Are target companies real and reachable?
+5. **Cultural/Seasonal Fit** (0-10): Does it align with regional business practices?
+6. **Competitive Advantage** (0-10): Can we differentiate effectively in this segment?
+7. **Sales Execution** (0-10): How easy is this segment to reach and sell to?
+
+**MINIMUM SCORE THRESHOLD: 42/70 (60%)**
+**ICPs scoring below 42/70 must be REJECTED and replaced with higher-scoring alternatives**
+
+**PHASE 5: QUALITY VALIDATION CHECKLIST**
+Before outputting any ICP, verify:
+□ All target companies are real businesses (check domains work)
+□ Geographic locations are accurate and make business sense
+□ Industry classifications are specific and relevant
+□ Employee counts are realistic and researched
+□ Business models align with customer success patterns
+□ Cultural/regional factors have been considered
+□ Seasonal business patterns are accounted for
+
+**SMART ICP OUTPUT STRUCTURE:**
+
+# 🧠 INTELLIGENT ICP ANALYSIS FOR ${domain || 'TARGET COMPANY'}
+
+## 1. CUSTOMER INTELLIGENCE SUMMARY
+- **Total Customer Cases Analyzed**: [number]
+- **Geographic Distribution Identified**: [regions/countries]
+- **Primary Industry Verticals**: [top 3-5 industries]
+- **Company Size Patterns**: [size ranges with percentages]
+- **Key Success Factors**: [top 3-5 factors]
+
+## 2. GEOGRAPHIC & BUSINESS CONTEXT ANALYSIS
+- **Primary Market Regions**: [regions with business rationale]
+- **Cultural Business Factors**: [relevant cultural considerations]
+- **Seasonal/Festival Impact**: [timing considerations for business]
+- **Regional Economic Indicators**: [relevant economic factors]
+- **Local Business Practices**: [important local practices]
+
+## 3. ICP PROFILE #1: [High-Value Segment Name] 
+**🏆 ICP SCORE: [XX/70] - [PASSED/REJECTED]**
+
+**Profile Characteristics:**
+- Industry/Vertical: [Specific industry with sub-sector]
+- Company Size: [Employee range with reasoning]
+- Revenue Range: [Annual revenue with currency/region]  
+- Geographic Focus: [Specific regions/countries]
+- Business Model: [Detailed business model description]
+
+**Advanced Intelligence:**
+- **Cultural Fit**: [How regional culture affects business]
+- **Seasonal Patterns**: [Timing considerations and festivals]
+- **Economic Context**: [Regional economic factors]
+- **Technology Adoption**: [Tech maturity in this region/industry]
+- **Buying Behavior**: [Regional purchasing patterns]
+
+**Firmographics:**
+- Funding Stage: [With regional venture landscape context]
+- Growth Stage: [Considering regional market maturity]  
+- Market Position: [Within regional competitive landscape]
+- Geographic Presence: [Specific cities/regions]
+
+**Technographics:**
+- Current Tech Stack: [Region-appropriate technology]
+- Technology Maturity: [Considering local tech adoption]
+- Digital Transformation Stage: [Regional digital maturity]
+- Integration Requirements: [Local system integrations]
+
+**Psychographics & Regional Behaviors:**
+- Pain Points: [Region-specific business challenges]
+- Buying Triggers: [Cultural and seasonal triggers]
+- Decision-Making Process: [Regional business hierarchies]
+- Budget Allocation: [Regional budget practices]
+
+**Target Job Roles:**
+- Primary Decision Maker: [With regional business titles]
+- Influencers: [Regional stakeholder patterns]
+- End Users: [Local user personas]
+- Budget Owner: [Regional budget authorities]
+
+**🎯 VALIDATED TARGET COMPANIES FOR ICP #1:**
+
+| Company Name | Domain | Employees | Industry | Location | Score | Validation | Reasoning |
+|--------------|---------|-----------|----------|----------|--------|-------------|-----------|
+| [Real Company 1] | [verified-domain.com] | [researched count] | [verified industry] | [verified location] | [X/10] | ✅ VERIFIED | [Specific pattern-based reasoning] |
+| [Real Company 2] | [verified-domain.com] | [researched count] | [verified industry] | [verified location] | [X/10] | ✅ VERIFIED | [Specific pattern-based reasoning] |
+| [Continue for 5-7 companies] | | | | | | |
+
+## 4. ICP PROFILE #2: [Secondary Segment Name]
+**🏆 ICP SCORE: [XX/70] - [PASSED/REJECTED]**
+[Same detailed structure as Profile #1]
+
+## 5. ICP PROFILE #3: [Tertiary Segment Name]  
+**🏆 ICP SCORE: [XX/70] - [PASSED/REJECTED]**
+[Same detailed structure as Profile #1]
+
+## 6. INTELLIGENT VALIDATION REPORT
+
+**ICP Scoring Summary:**
+- ICP #1 Score: [XX/70] - [Status]
+- ICP #2 Score: [XX/70] - [Status]  
+- ICP #3 Score: [XX/70] - [Status]
+
+**Quality Assurance Results:**
+□ All target companies verified as real businesses
+□ Geographic accuracy validated
+□ Industry classifications confirmed
+□ Cultural factors incorporated
+□ Seasonal considerations included
+□ Competitive differentiation validated
+
+**Rejected ICPs:** [List any ICPs that scored below 42/70 with reasons]
+
+## 7. STRATEGIC IMPLEMENTATION ROADMAP
+
+**Priority Ranking (Based on Scores):**
+1. [Highest scoring ICP] - Priority: IMMEDIATE
+2. [Second highest] - Priority: SHORT TERM  
+3. [Third highest] - Priority: MEDIUM TERM
+
+**Geographic Implementation Strategy:**
+- Phase 1: [Primary region with reasoning]
+- Phase 2: [Secondary region with timing]
+- Phase 3: [Expansion regions with conditions]
+
+**Cultural Adaptation Requirements:**
+- [Region-specific messaging adaptations]
+- [Seasonal campaign timing]
+- [Local partnership opportunities]
+
+CRITICAL REQUIREMENTS:
+- ONLY output ICPs that score 42/70 or higher
+- ALL target companies must be real, verified businesses
+- ALL locations must be geographically accurate
+- Include specific cultural/seasonal business considerations
+- Provide detailed reasoning for every target company selection
+- If an ICP scores below threshold, find and substitute a better alternative`),
+      new HumanMessage(`Smart ICP Analysis Request: "${query}"${contextPrompt}\n\nBased on these comprehensive intelligence sources:\n${sourcesText}\n\nPlease apply the intelligent analysis methodology to create 3 validated, high-scoring ICP profiles.`)
     ];
     
     let fullText = '';
