@@ -108,12 +108,32 @@ export class MultiAgentICPEngine {
         priority: 10
       };
 
-      const synthesisTaskId = await this.agentHub.assignTask(synthesisTask);
-      
-      // Wait for synthesis to complete
-      const icpProfiles = await this.waitForTaskCompletion(synthesisTaskId);
+      // Execute ICP synthesis directly
+      let icpProfiles: ICPProfile[] = [];
+      try {
+        const suitableAgents = this.agentHub.findSuitableAgents('icp-profile-synthesis');
+        if (suitableAgents.length > 0) {
+          const selectedAgent = this.agentHub.selectBestAgent(suitableAgents, synthesisTask.priority);
+          const agent = this.agentHub.getAgent(selectedAgent.id);
+          
+          if (agent) {
+            icpProfiles = await agent.executeTask({
+              id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              agentId: selectedAgent.id,
+              type: 'icp-profile-synthesis',
+              status: 'in_progress',
+              input: synthesisTask.input,
+              priority: synthesisTask.priority,
+              createdAt: new Date()
+            }) as ICPProfile[];
+          }
+        }
+      } catch (error) {
+        console.error('Error executing ICP synthesis:', error);
+        throw new Error(`ICP synthesis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
 
-      return icpProfiles as ICPProfile[];
+      return icpProfiles;
 
     } catch (error) {
       throw new Error(`Multi-Agent ICP Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

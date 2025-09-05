@@ -72,7 +72,7 @@ export class AgentHub {
     }
 
     // Select agent based on priority and current workload
-    const selectedAgent = this.selectBestAgent(suitableAgents, task.priority);
+    const selectedAgent = this.selectBestAgentInternal(suitableAgents, task.priority);
     
     const fullTask: AgentTask = {
       ...task,
@@ -166,22 +166,57 @@ export class AgentHub {
         data: { tasks: dataGatheringTasks.length }
       });
 
-      const dataGatheringPromises = dataGatheringTasks.map(task => 
-        this.assignTask(task)
-      );
+      // Execute tasks directly instead of using complex task tracking
+      const gatheredData: Record<string, unknown> = {};
+      
+      for (const task of dataGatheringTasks) {
+        try {
+          this.emitEvent({
+            type: 'data-shared',
+            agentId: 'coordinator',
+            timestamp: new Date(),
+            message: `🔄 Executing ${task.type} task`,
+            data: { taskType: task.type }
+          });
 
-      const dataGatheringTaskIds = await Promise.all(dataGatheringPromises);
-
-      this.emitEvent({
-        type: 'data-shared',
-        agentId: 'coordinator',
-        timestamp: new Date(),
-        message: '⏳ Waiting for all agents to complete data gathering',
-        data: { taskIds: dataGatheringTaskIds }
-      });
-
-      // Wait for all data gathering to complete
-      const gatheredData = await this.waitForTasks(dataGatheringTaskIds);
+          const suitableAgents = this.findSuitableAgentsInternal(task.type);
+          if (suitableAgents.length > 0) {
+            const selectedAgent = this.selectBestAgentInternal(suitableAgents, task.priority);
+            const agent = this.agents.get(selectedAgent.id);
+            
+            if (agent) {
+              const result = await agent.executeTask({
+                id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                agentId: selectedAgent.id,
+                type: task.type,
+                status: 'in_progress',
+                input: task.input,
+                priority: task.priority,
+                createdAt: new Date()
+              });
+              
+              gatheredData[task.type] = result;
+              
+              this.emitEvent({
+                type: 'data-shared',
+                agentId: 'coordinator',
+                timestamp: new Date(),
+                message: `✅ Completed ${task.type} task`,
+                data: { taskType: task.type, resultType: typeof result }
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`Error executing task ${task.type}:`, error);
+          this.emitEvent({
+            type: 'agent-error',
+            agentId: 'coordinator',
+            timestamp: new Date(),
+            message: `❌ Failed to execute ${task.type} task: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            data: { taskType: task.type, error }
+          });
+        }
+      }
 
       this.emitEvent({
         type: 'data-shared',
@@ -211,8 +246,44 @@ export class AgentHub {
         priority: this.config.priorityWeights.targetCompany
       };
 
-      const targetCompanyTaskId = await this.assignTask(targetCompanyTask);
-      const targetCompanyData = await this.waitForTask(targetCompanyTaskId);
+      // Execute target company discovery directly
+      let targetCompanyData: unknown = {};
+      try {
+        const suitableAgents = this.findSuitableAgentsInternal('target-company-discovery');
+        if (suitableAgents.length > 0) {
+          const selectedAgent = this.selectBestAgentInternal(suitableAgents, targetCompanyTask.priority);
+          const agent = this.agents.get(selectedAgent.id);
+          
+          if (agent) {
+            this.emitEvent({
+              type: 'data-shared',
+              agentId: 'coordinator',
+              timestamp: new Date(),
+              message: '🔄 Executing target company discovery task',
+              data: { taskType: 'target-company-discovery' }
+            });
+
+            targetCompanyData = await agent.executeTask({
+              id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              agentId: selectedAgent.id,
+              type: 'target-company-discovery',
+              status: 'in_progress',
+              input: targetCompanyTask.input,
+              priority: targetCompanyTask.priority,
+              createdAt: new Date()
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error executing target company discovery:', error);
+        this.emitEvent({
+          type: 'agent-error',
+          agentId: 'coordinator',
+          timestamp: new Date(),
+          message: `❌ Failed target company discovery: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          data: { error }
+        });
+      }
 
       this.emitEvent({
         type: 'data-shared',
@@ -282,7 +353,18 @@ export class AgentHub {
 
         const agent = this.agents.get(message.to);
         if (agent) {
-          await agent.processMessage(message);
+          try {
+            await agent.processMessage(message);
+          } catch (error) {
+            console.error(`Error processing message for agent ${message.to}:`, error);
+            this.emitEvent({
+              type: 'agent-error',
+              agentId: message.to,
+              timestamp: new Date(),
+              message: `Error processing message: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              data: error
+            });
+          }
         }
       }
     } finally {
@@ -290,8 +372,19 @@ export class AgentHub {
     }
   }
 
+  // Public method to find suitable agents (needed by multi-agent-icp-engine)
+  public findSuitableAgents(taskType: string): Agent[] {
+    return this.findSuitableAgentsInternal(taskType);
+  }
+
+  // Public method to select best agent (needed by multi-agent-icp-engine)
+  public selectBestAgent(agents: Agent[], priority: number): Agent {
+    return this.selectBestAgentInternal(agents, priority);
+  }
+
+
   // Find agents capable of handling a specific task type
-  private findSuitableAgents(taskType: string): Agent[] {
+  private findSuitableAgentsInternal(taskType: string): Agent[] {
     const suitableAgents: Agent[] = [];
 
     for (const agent of this.agents.values()) {
@@ -304,7 +397,7 @@ export class AgentHub {
   }
 
   // Select the best agent for a task based on priority and workload
-  private selectBestAgent(agents: Agent[], priority: number): Agent {
+  private selectBestAgentInternal(agents: Agent[], priority: number): Agent {
     // Sort by status (idle agents first), then by priority, then by current workload
     const sortedAgents = agents.sort((a, b) => {
       if (a.status === 'idle' && b.status !== 'idle') return -1;
