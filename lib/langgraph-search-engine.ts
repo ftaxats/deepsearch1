@@ -4,6 +4,7 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { FirecrawlClient } from './firecrawl';
 import { ContextProcessor } from './context-processor';
 import { SEARCH_CONFIG, CRAWL_CONFIG, MODEL_CONFIG } from './config';
+import { MultiAgentICPEngine, AgentEvent } from './multi-agent';
 
 // Event types remain the same for frontend compatibility
 export type SearchPhase = 
@@ -199,6 +200,7 @@ export class LangGraphSearchEngine {
   private llm: ChatOpenAI;
   private streamingLlm: ChatOpenAI;
   private checkpointer?: MemorySaver;
+  private multiAgentEngine?: MultiAgentICPEngine;
 
   constructor(firecrawl: FirecrawlClient, options?: { enableCheckpointing?: boolean }) {
     this.firecrawl = firecrawl;
@@ -227,6 +229,9 @@ export class LangGraphSearchEngine {
     if (options?.enableCheckpointing) {
       this.checkpointer = new MemorySaver();
     }
+    
+    // Initialize multi-agent engine
+    this.multiAgentEngine = new MultiAgentICPEngine(this.llm, this.streamingLlm);
     
     this.graph = this.buildGraph();
   }
@@ -369,7 +374,7 @@ export class LangGraphSearchEngine {
   }
 
   // NEW: Separate ICP Analysis - Creates 3 specific ICP profiles with real company examples
-  // ENHANCED: Smart ICP Analysis with Deep Research, Geographic Intelligence & Validation Scoring
+  // SIMPLIFIED: Direct ICP Analysis (No Loops, Fast Processing)
   async generateICPProfiles(
     companyUrl: string,
     onEvent: (event: SearchEvent) => void,
@@ -381,167 +386,147 @@ export class LangGraphSearchEngine {
     try {
       const domain = new URL(companyUrl).hostname.replace('www.', '');
       
-      onEvent({ type: 'phase-update', phase: 'understanding', message: '🧠 Initiating intelligent ICP discovery with multi-dimensional analysis...' });
-      onEvent({ type: 'thinking', message: `🔍 Phase 1: Deep customer pattern analysis for ${domain}` });
+      onEvent({ type: 'phase-update', phase: 'understanding', message: '🧠 Analyzing company for intelligent ICP creation...' });
+      onEvent({ type: 'thinking', message: `🔍 Processing intelligence for ${domain}` });
 
-      // Phase 1: Deep Customer Intelligence Gathering (Enhanced)
-      onEvent({ type: 'phase-update', phase: 'searching', message: '📊 Deep analysis: customer case studies, success stories & testimonials...' });
-      
-      const customerIntelligence = await this.firecrawl.gatherWebsiteIntelligence(companyUrl, 'customers');
+      // Use existing company research data (from pasted analysis)
       const allSources: Source[] = options?.companyResearchData || [];
       
-      if (customerIntelligence.success && customerIntelligence.rawData) {
-        const customerSources = customerIntelligence.rawData.map((page: CrawledPage) => ({
-          url: page.url,
-          title: page.title || `${domain} - Customer Intelligence`,
-          content: page.markdown || '',
-          quality: 0.95,
-          summary: 'Customer case studies and success stories for ICP analysis',
-          metadata: {
-            intelligenceType: 'customer_analysis',
-            discoveryMethod: 'search',
-            crawledAt: new Date().toISOString()
-          }
-        }));
-        
-        allSources.push(...customerSources);
-        onEvent({ type: 'thinking', message: `✅ Analyzed ${customerSources.length} customer case studies for behavioral patterns` });
-      }
+      onEvent({ type: 'thinking', message: `✅ Using ${allSources.length} intelligence sources from company analysis` });
 
-      // Phase 2: Company Geographic & Business Context Analysis
-      onEvent({ type: 'thinking', message: `🌍 Phase 2: Geographic & business context analysis for ${domain}` });
+      // Direct ICP Generation (Skip external searches to avoid loops)
+      onEvent({ type: 'phase-update', phase: 'synthesizing', message: '🧠 Creating intelligent ICP profiles with scoring validation...' });
+      onEvent({ type: 'thinking', message: `⚡ Generating 3 scored ICP profiles based on company intelligence` });
       
-      const companyIntelligence = await this.firecrawl.gatherWebsiteIntelligence(companyUrl, 'comprehensive');
-      if (companyIntelligence.success && companyIntelligence.rawData) {
-        const contextSources = companyIntelligence.rawData.map((page: CrawledPage) => ({
-          url: page.url,
-          title: page.title || `${domain} - Business Context`,
-          content: page.markdown || '',
-          quality: 0.9,
-          summary: 'Company location, operations, and business context',
-          metadata: {
-            intelligenceType: 'company_context',
-            discoveryMethod: 'search',
-            crawledAt: new Date().toISOString()
-          }
-        }));
-        
-        allSources.push(...contextSources);
-        onEvent({ type: 'thinking', message: `🏢 Mapped company operational context from ${contextSources.length} sources` });
-      }
-
-      // Phase 3: Advanced Market Intelligence & Geographic Customer Mapping
-      onEvent({ type: 'thinking', message: `🗺️ Phase 3: Advanced market intelligence & customer geography mapping` });
-      
-      try {
-        // Enhanced search for geographic and industry patterns
-        const marketResearch = await this.firecrawl.search(`"${domain}" customers location geography industry "case study" "success story" "testimonial"`, {
-          limit: 10,
-          scrapeOptions: { formats: ['markdown'] }
-        });
-        
-        if (marketResearch.data) {
-          const marketSources = marketResearch.data
-            .filter((result: SearchResultItem) => result.markdown && result.markdown.length > 200)
-            .map((result: SearchResultItem) => ({
-              url: result.url,
-              title: result.title || 'Market Intelligence',
-              content: result.markdown || '',
-              quality: 0.85,
-              summary: 'Market intelligence and geographic customer patterns'
-            }));
-          
-          allSources.push(...marketSources);
-          onEvent({ type: 'thinking', message: `🔍 Discovered geographic patterns from ${marketSources.length} market sources` });
-        }
-      } catch {
-        onEvent({ type: 'thinking', message: `⚠️ Market research limited - focusing on customer intelligence` });
-      }
-
-      // Phase 4: Industry Vertical & Regional Business Intelligence
-      onEvent({ type: 'thinking', message: `🏭 Phase 4: Industry vertical analysis & regional business patterns` });
-      
-      try {
-        const industryResearch = await this.firecrawl.search(`"${domain}" industry customers company size employees location region business model`, {
-          limit: 8,
-          scrapeOptions: { formats: ['markdown'] }
-        });
-        
-        if (industryResearch.data) {
-          const industrySources = industryResearch.data
-            .filter((result: SearchResultItem) => result.markdown && result.markdown.length > 150)
-            .map((result: SearchResultItem) => ({
-              url: result.url,
-              title: result.title || 'Industry Intelligence',
-              content: result.markdown || '',
-              quality: 0.8,
-              summary: 'Industry patterns and regional business intelligence'
-            }));
-          
-          allSources.push(...industrySources);
-          onEvent({ type: 'thinking', message: `📊 Analyzed industry patterns from ${industrySources.length} sources` });
-        }
-      } catch {
-        onEvent({ type: 'thinking', message: `⚠️ Industry data limited - proceeding with available intelligence` });
-      }
-
-      // Phase 5: Smart Target Company Discovery (NEW)
-      onEvent({ type: 'thinking', message: `🎯 Phase 5: AI-powered target company discovery & validation` });
-      
-      try {
-        const targetCompanySearch = await this.firecrawl.search(`companies similar to "${domain.split('.')[0]}" customers prospects businesses`, {
-          limit: 12,
-          scrapeOptions: { formats: ['markdown'] }
-        });
-        
-        if (targetCompanySearch.data) {
-          const targetSources = targetCompanySearch.data
-            .filter((result: SearchResultItem) => result.markdown && result.markdown.length > 100)
-            .map((result: SearchResultItem) => ({
-              url: result.url,
-              title: result.title || 'Target Company Intelligence',
-              content: result.markdown || '',
-              quality: 0.75,
-              summary: 'Target company discovery and validation data'
-            }));
-          
-          allSources.push(...targetSources);
-          onEvent({ type: 'thinking', message: `🎯 Identified potential targets from ${targetSources.length} company sources` });
-        }
-      } catch {
-        onEvent({ type: 'thinking', message: `⚠️ Target discovery limited - proceeding with customer analysis` });
-      }
-
-      // Phase 6: Enhanced ICP Generation with Smart Scoring & Validation
-      onEvent({ type: 'phase-update', phase: 'synthesizing', message: '🧠 Creating intelligent ICP profiles with AI scoring & validation...' });
-      onEvent({ type: 'thinking', message: `⚡ Phase 6: Applying advanced ICP scoring algorithms & rejection criteria` });
-      
-      const query = `Create 3 validated, high-scoring ICP profiles for ${domain} using intelligent analysis`;
+      const query = `Create 3 validated ICP profiles for ${domain} based on company analysis`;
       
       const contentCb = (chunk: string) => {
         onEvent({ type: 'content-chunk', chunk });
       };
 
-      // Use enhanced ICP report generation with scoring
-      const smartICPReport = await this.generateSmartICPReport(query, allSources, contentCb, options?.context, domain);
+      // Direct smart ICP generation without additional API calls
+      const smartICPReport = await this.generateDirectSmartICP(query, allSources, contentCb, options?.context, domain);
 
       onEvent({ 
         type: 'final-result', 
         content: smartICPReport, 
         sources: allSources,
         followUpQuestions: [
-          'Conduct deep-dive research on highest-scoring ICP profile',
-          'Generate specific outreach sequences for validated ICPs',
-          'Research additional companies matching ICP criteria'
+          'Research highest-scoring ICP in detail',
+          'Generate outreach sequences for top ICP',
+          'Find additional companies matching ICP criteria'
         ]
       });
       
-      onEvent({ type: 'phase-update', phase: 'complete', message: `🎯 Smart ICP analysis complete: 3 validated profiles from ${allSources.length} intelligence sources` });
+      onEvent({ type: 'phase-update', phase: 'complete', message: `🎯 ICP analysis complete: 3 validated profiles created` });
       
     } catch (error) {
       onEvent({
         type: 'error',
-        error: error instanceof Error ? error.message : 'Smart ICP analysis failed',
+        error: error instanceof Error ? error.message : 'ICP analysis failed',
+        errorType: 'unknown',
+      });
+    }
+  }
+
+  // NEW: Multi-Agent ICP Analysis
+  async generateMultiAgentICPProfiles(
+    query: string,
+    sources: Source[],
+    onEvent: (event: SearchEvent) => void,
+    options?: { 
+      context?: { query: string; response: string }[];
+      useMultiAgent?: boolean;
+    }
+  ): Promise<void> {
+    try {
+      if (!this.multiAgentEngine) {
+        throw new Error('Multi-agent engine not initialized');
+      }
+
+      onEvent({ type: 'phase-update', phase: 'understanding', message: '🤖 Initializing multi-agent ICP analysis system...' });
+      onEvent({ type: 'thinking', message: '🚀 Deploying specialized agents for comprehensive ICP research' });
+
+      // Show agent initialization
+      const systemStatus = this.multiAgentEngine.getSystemStatus();
+      onEvent({ type: 'thinking', message: `📊 System Status: ${systemStatus.totalAgents} agents ready, ${systemStatus.idleAgents} available` });
+
+      onEvent({ type: 'phase-update', phase: 'planning', message: '🎯 Coordinating specialized agents for parallel data gathering...' });
+      onEvent({ type: 'thinking', message: '🔄 Customer Intelligence Agent: Analyzing case studies and testimonials' });
+      onEvent({ type: 'thinking', message: '📈 Market Research Agent: Gathering industry trends and competitive data' });
+      onEvent({ type: 'thinking', message: '🏢 Firmographic Agent: Analyzing company demographics and characteristics' });
+      onEvent({ type: 'thinking', message: '💻 Technographic Agent: Studying technology stacks and integrations' });
+      onEvent({ type: 'thinking', message: '🧠 Psychographic Agent: Understanding buying behavior and decision processes' });
+
+      onEvent({ type: 'phase-update', phase: 'searching', message: '🔍 Agents conducting parallel research and data extraction...' });
+
+      // Set up progress monitoring
+      const agentEvents: AgentEvent[] = [];
+      const onProgress = (event: AgentEvent) => {
+        agentEvents.push(event);
+        
+        // Convert agent events to search events for frontend compatibility
+        switch (event.type) {
+          case 'agent-started':
+            onEvent({ type: 'thinking', message: event.message || `🚀 ${event.agentId} started` });
+            break;
+          case 'agent-completed':
+            onEvent({ type: 'thinking', message: event.message || `✅ ${event.agentId} completed task` });
+            break;
+          case 'agent-error':
+            onEvent({ type: 'thinking', message: event.message || `⚠️ ${event.agentId} encountered an issue` });
+            break;
+          case 'data-shared':
+            onEvent({ type: 'thinking', message: event.message || `📊 ${event.agentId} shared data` });
+            break;
+        }
+        
+        // Also emit as a special agent event for the UI to capture
+        onEvent({ 
+          type: 'thinking', 
+          message: `AGENT_EVENT:${JSON.stringify(event)}` 
+        });
+      };
+
+      onEvent({ type: 'phase-update', phase: 'analyzing', message: '🧠 Agents analyzing gathered data and identifying patterns...' });
+      onEvent({ type: 'thinking', message: '🔍 Target Company Discovery Agent: Finding specific companies matching patterns' });
+
+      // Perform multi-agent ICP analysis
+      const icpProfiles = await this.multiAgentEngine.analyzeICPWithStreaming(
+        query,
+        sources,
+        (chunk: string) => {
+          onEvent({ type: 'content-chunk', chunk });
+        },
+        onProgress
+      );
+
+      onEvent({ type: 'phase-update', phase: 'synthesizing', message: '🎯 ICP Synthesis Agent: Creating comprehensive profiles...' });
+      onEvent({ type: 'thinking', message: '📋 Generating final ICP profiles with validation and insights' });
+
+      // Format the results
+      const resultsText = this.formatMultiAgentICPResults(icpProfiles, agentEvents);
+      
+      onEvent({ 
+        type: 'final-result', 
+        content: resultsText, 
+        sources: sources,
+        followUpQuestions: [
+          'Research highest-priority ICP in detail',
+          'Generate targeted outreach sequences',
+          'Find additional companies for each ICP',
+          'Analyze competitive landscape for top ICP',
+          'Create personalized messaging for each ICP'
+        ]
+      });
+      
+      onEvent({ type: 'phase-update', phase: 'complete', message: `🎯 Multi-agent ICP analysis complete: ${icpProfiles.length} validated profiles created` });
+      onEvent({ type: 'thinking', message: `📊 Analysis Summary: ${agentEvents.length} agent interactions, ${sources.length} sources processed` });
+      
+    } catch (error) {
+      onEvent({
+        type: 'error',
+        error: error instanceof Error ? error.message : 'Multi-agent ICP analysis failed',
         errorType: 'unknown',
       });
     }
@@ -906,6 +891,282 @@ CRITICAL REQUIREMENTS:
       }
     } catch {
       // Fallback to non-streaming if streaming fails
+      const response = await this.llm.invoke(messages);
+      fullText = response.content.toString();
+      onChunk(fullText);
+    }
+    
+    return fullText;
+  }
+
+  // NEW: Streamlined Smart ICP Generation (Performance Optimized)
+  private async generateStreamlinedSmartICP(
+    query: string,
+    sources: Source[],
+    onChunk: (chunk: string) => void,
+    context?: { query: string; response: string }[],
+    domain?: string
+  ): Promise<string> {
+    const sourcesText = sources
+      .map((s, i) => {
+        if (!s.content) return `[${i + 1}] ${s.title}\n[No content available]`;
+        return `[${i + 1}] ${s.title}\n${s.content}`;
+      })
+      .join('\n\n');
+    
+    let contextPrompt = '';
+    if (context && context.length > 0) {
+      contextPrompt = '\n\nPrevious context:\n';
+      context.forEach(c => {
+        contextPrompt += `Q: ${c.query}\nA: ${c.response.substring(0, 200)}...\n\n`;
+      });
+    }
+    
+    const messages = [
+      new SystemMessage(`${this.getCurrentDateContext()}
+
+You are an elite ICP strategist with AI-powered analysis capabilities. Create 3 high-quality, scored ICP profiles using smart validation.
+
+🧠 SMART ICP METHODOLOGY:
+
+**ANALYSIS PROCESS:**
+1. **Pattern Recognition**: Identify customer success patterns from case studies
+2. **Geographic Mapping**: Understand regional distribution and preferences  
+3. **Validation Scoring**: Score each ICP using 7-point criteria (70 points max)
+4. **Quality Control**: Reject ICPs scoring below 42/70 (60%)
+5. **Real Company Research**: Find and verify actual target companies
+
+**SCORING CRITERIA (0-10 each):**
+- Customer Pattern Match (0-10)
+- Geographic Relevance (0-10) 
+- Market Opportunity (0-10)
+- Business Viability (0-10)
+- Cultural/Seasonal Fit (0-10)
+- Competitive Advantage (0-10)
+- Sales Execution (0-10)
+
+**MINIMUM THRESHOLD: 42/70 - ICPs below this must be rejected and replaced**
+
+**OUTPUT STRUCTURE:**
+
+# 🧠 SMART ICP ANALYSIS FOR ${domain?.toUpperCase() || 'TARGET COMPANY'}
+
+## 1. CUSTOMER INTELLIGENCE SUMMARY
+- **Sources Analyzed**: [number] customer cases, testimonials, case studies
+- **Geographic Patterns**: [primary regions/countries identified]  
+- **Industry Verticals**: [top 3-5 industries from analysis]
+- **Size Patterns**: [company size ranges with percentages]
+
+## 2. ICP PROFILE #1: [Segment Name]
+**🏆 ICP SCORE: [XX/70] - [PASSED/REJECTED]**
+
+**Scoring Breakdown:**
+- Customer Pattern Match: [X/10] - [reasoning]
+- Geographic Relevance: [X/10] - [reasoning]  
+- Market Opportunity: [X/10] - [reasoning]
+- Business Viability: [X/10] - [reasoning]
+- Cultural/Seasonal Fit: [X/10] - [reasoning]
+- Competitive Advantage: [X/10] - [reasoning]
+- Sales Execution: [X/10] - [reasoning]
+
+**Profile Details:**
+- **Industry**: [Specific vertical with sub-sectors]
+- **Size**: [Employee count with reasoning from patterns]
+- **Geography**: [Specific regions/countries with business rationale]
+- **Revenue**: [Range with currency/regional context]
+- **Tech Stack**: [Common technologies used]
+- **Pain Points**: [Key challenges identified from customer data]
+- **Buying Triggers**: [What motivates purchase decisions]
+
+**🎯 VALIDATED TARGET COMPANIES:**
+| Company | Domain | Employees | Industry | Location | Reasoning |
+|---------|--------|-----------|----------|----------|-----------|
+| [Real Co 1] | [verified.com] | [count] | [industry] | [city, country] | [Pattern-based reasoning] |
+| [Real Co 2] | [verified.com] | [count] | [industry] | [city, country] | [Pattern-based reasoning] |
+| [Continue for 5-7 companies] | | | | | |
+
+## 3. ICP PROFILE #2: [Segment Name]
+**🏆 ICP SCORE: [XX/70] - [PASSED/REJECTED]**
+[Same structure as Profile #1]
+
+## 4. ICP PROFILE #3: [Segment Name]
+**🏆 ICP SCORE: [XX/70] - [PASSED/REJECTED]**
+[Same structure as Profile #1]
+
+## 5. VALIDATION SUMMARY
+
+**Quality Assurance:**
+- ✅/❌ All target companies verified as real businesses
+- ✅/❌ Geographic locations validated
+- ✅/❌ Industry classifications confirmed  
+- ✅/❌ Cultural factors considered
+- ✅/❌ Scoring criteria met (42+ points)
+
+**Implementation Priority:**
+1. **[Highest scoring ICP]** - Score: [XX/70] - IMMEDIATE ACTION
+2. **[Second highest]** - Score: [XX/70] - SHORT TERM  
+3. **[Third highest]** - Score: [XX/70] - MEDIUM TERM
+
+**Rejected ICPs:** [List any ICPs scoring below 42/70 with rejection reasons]
+
+CRITICAL REQUIREMENTS:
+- Only output ICPs scoring 42/70 or higher
+- All companies must be real with verified domains
+- Provide specific pattern-based reasoning for each target
+- Include geographic and cultural business considerations
+- If an ICP scores below 42/70, replace it with a better alternative`),
+      new HumanMessage(`Smart ICP Analysis: "${query}"${contextPrompt}\n\nIntelligence Sources:\n${sourcesText}\n\nCreate 3 validated, high-scoring ICP profiles with intelligent analysis.`)
+    ];
+    
+    let fullText = '';
+    
+    try {
+      const stream = await this.streamingLlm.stream(messages);
+      
+      for await (const chunk of stream) {
+        const content = chunk.content;
+        if (typeof content === 'string') {
+          fullText += content;
+          onChunk(content);
+        }
+      }
+    } catch {
+      // Fallback to non-streaming
+      const response = await this.llm.invoke(messages);
+      fullText = response.content.toString();
+      onChunk(fullText);
+    }
+    
+    return fullText;
+  }
+
+  // NEW: Direct Smart ICP Generation (No Additional API Calls - Prevents Loops)
+  private async generateDirectSmartICP(
+    query: string,
+    sources: Source[],
+    onChunk: (chunk: string) => void,
+    context?: { query: string; response: string }[],
+    domain?: string
+  ): Promise<string> {
+    const sourcesText = sources
+      .map((s, i) => {
+        if (!s.content) return `[${i + 1}] ${s.title}\n[No content available]`;
+        return `[${i + 1}] ${s.title}\n${s.content}`;
+      })
+      .join('\n\n');
+    
+    let contextPrompt = '';
+    if (context && context.length > 0) {
+      contextPrompt = '\n\nPrevious context:\n';
+      context.forEach(c => {
+        contextPrompt += `Q: ${c.query}\nA: ${c.response.substring(0, 200)}...\n\n`;
+      });
+    }
+    
+    const messages = [
+      new SystemMessage(`${this.getCurrentDateContext()}
+
+You are an expert ICP strategist. Based on the provided company analysis, create 3 high-quality ICP profiles with intelligent scoring.
+
+**DIRECT ICP ANALYSIS FOR ${domain?.toUpperCase() || 'TARGET COMPANY'}:**
+
+1. Analyze the company's customers and market from the provided intelligence
+2. Create 3 distinct ICP segments based on patterns you identify
+3. Score each ICP using a 7-point system (70 points max)
+4. Provide real target companies for each ICP with specific reasoning
+5. Only include ICPs scoring 42/70 or higher
+
+**SCORING CRITERIA (0-10 each):**
+- Customer Pattern Match: How well does it match existing customer patterns?
+- Geographic Relevance: Does the location/region make business sense? 
+- Market Opportunity: Is there sufficient market size and opportunity?
+- Business Viability: Are target companies real and reachable?
+- Cultural/Seasonal Fit: Does it align with regional business practices?
+- Competitive Advantage: Can we differentiate effectively in this segment?
+- Sales Execution: How easy is this segment to reach and sell to?
+
+**OUTPUT FORMAT:**
+
+# 🎯 INTELLIGENT ICP ANALYSIS FOR ${domain?.toUpperCase() || 'TARGET COMPANY'}
+
+## 1. COMPANY ANALYSIS SUMMARY
+- **Customer Patterns Identified**: [key patterns from analysis]
+- **Market Position**: [company's position in market]
+- **Geographic Focus**: [primary regions where company operates]
+- **Customer Success Factors**: [what makes customers successful]
+
+## 2. ICP PROFILE #1: [Segment Name]
+**🏆 ICP SCORE: [XX/70] - [PASSED/REJECTED]**
+
+**Why This ICP Works:**
+- Customer Pattern Match: [X/10] - [specific reasoning]
+- Geographic Relevance: [X/10] - [specific reasoning]
+- Market Opportunity: [X/10] - [specific reasoning]  
+- Business Viability: [X/10] - [specific reasoning]
+- Cultural/Seasonal Fit: [X/10] - [specific reasoning]
+- Competitive Advantage: [X/10] - [specific reasoning]
+- Sales Execution: [X/10] - [specific reasoning]
+
+**Profile Details:**
+- **Industry**: [Specific industry with sub-sectors]
+- **Company Size**: [Employee count range with reasoning]
+- **Geographic Focus**: [Specific regions/countries]
+- **Revenue Range**: [Annual revenue range]
+- **Key Characteristics**: [What defines this segment]
+- **Pain Points**: [Primary challenges they face]
+- **Buying Triggers**: [What motivates them to buy]
+
+**🎯 TARGET COMPANIES:**
+| Company | Domain | Employees | Industry | Location | Fit Reasoning |
+|---------|--------|-----------|----------|----------|---------------|
+| [Real Co 1] | [domain.com] | [count] | [specific industry] | [city, country] | [Why they match the pattern] |
+| [Real Co 2] | [domain.com] | [count] | [specific industry] | [city, country] | [Why they match the pattern] |
+| [Continue for 5-7 companies] | | | | | |
+
+## 3. ICP PROFILE #2: [Different Segment]
+**🏆 ICP SCORE: [XX/70] - [PASSED/REJECTED]**
+[Same detailed structure as Profile #1]
+
+## 4. ICP PROFILE #3: [Third Segment]  
+**🏆 ICP SCORE: [XX/70] - [PASSED/REJECTED]**
+[Same detailed structure as Profile #1]
+
+## 5. IMPLEMENTATION STRATEGY
+
+**Priority Ranking:**
+1. [Highest scoring ICP] - Score: [XX/70] - **IMMEDIATE FOCUS**
+2. [Second highest] - Score: [XX/70] - **SHORT TERM** 
+3. [Third highest] - Score: [XX/70] - **MEDIUM TERM**
+
+**Next Steps:**
+- Focus initial outreach on highest-scoring ICP
+- Develop targeted messaging for each segment
+- Research additional companies matching top ICP criteria
+
+**Quality Assurance:**
+- All target companies are real businesses with verified domains
+- ICPs based on actual customer success patterns
+- Geographic and cultural factors considered
+- Minimum 42/70 score threshold maintained
+
+CRITICAL: Only output ICPs scoring 42/70 or higher. If an ICP scores below this threshold, replace it with a better alternative based on the company analysis.`),
+      new HumanMessage(`Create intelligent ICP profiles for: "${query}"${contextPrompt}\n\nCompany Intelligence Sources:\n${sourcesText}`)
+    ];
+    
+    let fullText = '';
+    
+    try {
+      const stream = await this.streamingLlm.stream(messages);
+      
+      for await (const chunk of stream) {
+        const content = chunk.content;
+        if (typeof content === 'string') {
+          fullText += content;
+          onChunk(content);
+        }
+      }
+    } catch {
+      // Fallback to non-streaming
       const response = await this.llm.invoke(messages);
       fullText = response.content.toString();
       onChunk(fullText);
@@ -2612,5 +2873,134 @@ Constraints:
     } catch {
       return [];
     }
+  }
+
+  // Helper method to format multi-agent ICP results
+  private formatMultiAgentICPResults(icpProfiles: any[], agentEvents: any[]): string {
+    let result = '# Multi-Agent ICP Analysis Results\n\n';
+    
+    // Add system summary
+    result += `## 🤖 Multi-Agent System Summary\n\n`;
+    result += `- **Total Agents Deployed:** ${agentEvents.filter(e => e.type === 'agent-started').length}\n`;
+    result += `- **Successful Completions:** ${agentEvents.filter(e => e.type === 'agent-completed').length}\n`;
+    result += `- **Data Sharing Events:** ${agentEvents.filter(e => e.type === 'data-shared').length}\n`;
+    result += `- **ICP Profiles Generated:** ${icpProfiles.length}\n\n`;
+    
+    // Add agent activity log
+    result += `## 📊 Agent Activity Log\n\n`;
+    agentEvents.forEach((event, index) => {
+      const timestamp = event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : 'Unknown';
+      result += `${index + 1}. **[${timestamp}]** ${event.agentId}: ${event.message || event.type}\n`;
+    });
+    result += '\n';
+    
+    // Add ICP profiles
+    result += `## 🎯 Generated ICP Profiles\n\n`;
+    
+    icpProfiles.forEach((profile, index) => {
+      result += `### ICP Profile ${index + 1}: ${profile.name || `Profile ${index + 1}`}\n\n`;
+      result += `**Priority:** ${profile.priority || 'Not specified'}\n\n`;
+      
+      if (profile.characteristics) {
+        result += `#### 📋 Characteristics\n`;
+        result += `- **Industry:** ${profile.characteristics.industry || 'Not specified'}\n`;
+        result += `- **Company Size:** ${profile.characteristics.companySize || 'Not specified'}\n`;
+        result += `- **Revenue Range:** ${profile.characteristics.revenueRange || 'Not specified'}\n`;
+        result += `- **Geographic Focus:** ${profile.characteristics.geographicFocus || 'Not specified'}\n`;
+        result += `- **Business Model:** ${profile.characteristics.businessModel || 'Not specified'}\n\n`;
+      }
+      
+      if (profile.firmographics) {
+        result += `#### 🏢 Firmographics\n`;
+        result += `- **Funding Stage:** ${profile.firmographics.fundingStage || 'Not specified'}\n`;
+        result += `- **Growth Stage:** ${profile.firmographics.growthStage || 'Not specified'}\n`;
+        result += `- **Market Position:** ${profile.firmographics.marketPosition || 'Not specified'}\n`;
+        result += `- **Geographic Presence:** ${profile.firmographics.geographicPresence || 'Not specified'}\n\n`;
+      }
+      
+      if (profile.technographics) {
+        result += `#### 💻 Technographics\n`;
+        result += `- **Technology Maturity:** ${profile.technographics.technologyMaturity || 'Not specified'}\n`;
+        result += `- **Digital Transformation Stage:** ${profile.technographics.digitalTransformationStage || 'Not specified'}\n`;
+        if (profile.technographics.currentTechStack) {
+          result += `- **Current Tech Stack:** ${Array.isArray(profile.technographics.currentTechStack) ? profile.technographics.currentTechStack.join(', ') : profile.technographics.currentTechStack}\n`;
+        }
+        if (profile.technographics.integrationRequirements) {
+          result += `- **Integration Requirements:** ${Array.isArray(profile.technographics.integrationRequirements) ? profile.technographics.integrationRequirements.join(', ') : profile.technographics.integrationRequirements}\n`;
+        }
+        result += '\n';
+      }
+      
+      if (profile.psychographics) {
+        result += `#### 🧠 Psychographics\n`;
+        if (profile.psychographics.painPoints) {
+          result += `- **Pain Points:** ${Array.isArray(profile.psychographics.painPoints) ? profile.psychographics.painPoints.join(', ') : profile.psychographics.painPoints}\n`;
+        }
+        if (profile.psychographics.buyingTriggers) {
+          result += `- **Buying Triggers:** ${Array.isArray(profile.psychographics.buyingTriggers) ? profile.psychographics.buyingTriggers.join(', ') : profile.psychographics.buyingTriggers}\n`;
+        }
+        result += `- **Decision-Making Process:** ${profile.psychographics.decisionMakingProcess || 'Not specified'}\n`;
+        result += `- **Budget Allocation:** ${profile.psychographics.budgetAllocation || 'Not specified'}\n\n`;
+      }
+      
+      if (profile.targetCompanies && Array.isArray(profile.targetCompanies)) {
+        result += `#### 🎯 Target Companies\n`;
+        profile.targetCompanies.forEach((company: any, companyIndex: number) => {
+          result += `${companyIndex + 1}. **${company.name || 'Unknown Company'}** (${company.domain || 'No domain'})\n`;
+          result += `   - Industry: ${company.industry || 'Not specified'}\n`;
+          result += `   - Size: ${company.size || 'Not specified'}\n`;
+          result += `   - Location: ${company.location || 'Not specified'}\n`;
+          result += `   - Reasoning: ${company.reasoning || 'Not specified'}\n\n`;
+        });
+      }
+      
+      if (profile.validation) {
+        result += `#### ✅ Validation\n`;
+        result += `- **Market Size:** ${profile.validation.marketSize || 'Not specified'}\n`;
+        result += `- **Competition Level:** ${profile.validation.competitionLevel || 'Not specified'}\n`;
+        result += `- **Sales Velocity:** ${profile.validation.salesVelocity || 'Not specified'}\n`;
+        result += `- **Revenue Potential:** ${profile.validation.revenuePotential || 'Not specified'}\n`;
+        result += `- **Confidence:** ${profile.validation.confidence || 'Not specified'}\n\n`;
+      }
+      
+      if (profile.insights) {
+        result += `#### 💡 Key Insights\n`;
+        if (profile.insights.keyDifferentiators) {
+          result += `- **Key Differentiators:** ${Array.isArray(profile.insights.keyDifferentiators) ? profile.insights.keyDifferentiators.join(', ') : profile.insights.keyDifferentiators}\n`;
+        }
+        if (profile.insights.messagingResonance) {
+          result += `- **Messaging Resonance:** ${Array.isArray(profile.insights.messagingResonance) ? profile.insights.messagingResonance.join(', ') : profile.insights.messagingResonance}\n`;
+        }
+        if (profile.insights.valuePropositions) {
+          result += `- **Value Propositions:** ${Array.isArray(profile.insights.valuePropositions) ? profile.insights.valuePropositions.join(', ') : profile.insights.valuePropositions}\n`;
+        }
+        if (profile.insights.commonObjections) {
+          result += `- **Common Objections:** ${Array.isArray(profile.insights.commonObjections) ? profile.insights.commonObjections.join(', ') : profile.insights.commonObjections}\n`;
+        }
+        if (profile.insights.outreachStrategy) {
+          result += `- **Outreach Strategy:** ${Array.isArray(profile.insights.outreachStrategy) ? profile.insights.outreachStrategy.join(', ') : profile.insights.outreachStrategy}\n`;
+        }
+        result += '\n';
+      }
+      
+      result += '---\n\n';
+    });
+    
+    // Add recommendations
+    result += `## 🚀 Next Steps & Recommendations\n\n`;
+    result += `1. **Validate Top ICP:** Research the highest-priority ICP in detail\n`;
+    result += `2. **Generate Outreach Sequences:** Create targeted outreach for each ICP\n`;
+    result += `3. **Find Additional Companies:** Expand the target company lists\n`;
+    result += `4. **Competitive Analysis:** Analyze competitive landscape for top ICPs\n`;
+    result += `5. **Personalized Messaging:** Create ICP-specific messaging and content\n\n`;
+    
+    result += `## 📈 Multi-Agent System Benefits\n\n`;
+    result += `- **Parallel Processing:** Multiple agents working simultaneously\n`;
+    result += `- **Specialized Expertise:** Each agent focuses on specific data types\n`;
+    result += `- **Comprehensive Coverage:** All aspects of ICP analysis covered\n`;
+    result += `- **Data Validation:** Cross-agent validation of findings\n`;
+    result += `- **Scalable Architecture:** Easy to add new agents and capabilities\n\n`;
+    
+    return result;
   }
 }

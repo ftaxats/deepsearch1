@@ -105,3 +105,33 @@ export async function generateICPProfiles(
 
   return { stream: stream.value };
 }
+
+// NEW: Multi-Agent ICP Analysis
+export async function generateMultiAgentICPProfiles(
+  query: string,
+  sources: Source[],
+  options?: {
+    context?: { query: string; response: string }[];
+    useMultiAgent?: boolean;
+  },
+  apiKey?: string
+) {
+  'use server';
+  const stream = createStreamableValue<SearchEvent>();
+
+  const firecrawl = new FirecrawlClient(apiKey);
+  const searchEngine = new SearchEngine(firecrawl);
+
+  (async () => {
+    try {
+      await searchEngine.generateMultiAgentICPProfiles(query, sources, (event) => {
+        stream.update(event);
+      }, options);
+      stream.done();
+    } catch (error) {
+      stream.error(error);
+    }
+  })();
+
+  return { stream: stream.value };
+}

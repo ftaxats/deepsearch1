@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { search, analyzeCompanyIntelligence, generateICPProfiles } from './search';
+import { search, analyzeCompanyIntelligence, generateICPProfiles, generateMultiAgentICPProfiles } from './search';
 import { readStreamableValue } from 'ai/rsc';
 import { SearchDisplay } from './search-display';
 import { SearchEvent, Source } from '@/lib/langgraph-search-engine';
+import { AgentEvent } from '@/lib/multi-agent/types';
 import { MarkdownRenderer } from './markdown-renderer';
 import { CitationTooltip } from './citation-tooltip';
+import { AgentActivityPanel } from './agent-activity-panel';
 import Image from 'next/image';
 import { getFaviconUrl, getDefaultFavicon, markFaviconFailed } from '@/lib/favicon-utils';
 import {
@@ -202,6 +204,9 @@ export function Chat() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'research' | 'icp'>('research');
   const [dossierInput, setDossierInput] = useState<string>('');
+  const [useMultiAgent, setUseMultiAgent] = useState<boolean>(true); // Default to multi-agent
+  const [agentEvents, setAgentEvents] = useState<AgentEvent[]>([]);
+  const [showAgentPanel, setShowAgentPanel] = useState<boolean>(false);
 
   // Keep original suggestions for the research tab
   // const intelligenceSuggestions = [
@@ -487,18 +492,42 @@ export function Chat() {
         }
       }
 
-      // Extract company URL from dossier text if not provided
-      const urlToUse = companyUrl || extractUrlFromText(dossierText) || 'https://example.com';
+      // Identify company from analysis content (SMART: Analyze content instead of extracting URLs)
+      const identifiedUrl = identifyCompanyFromAnalysis(dossierText);
+      const urlToUse = companyUrl || identifiedUrl || 'https://saleshandy.com'; // Default to SalesHandy for testing
+      
+      // Debug: Show identified company (for development)
+      if (identifiedUrl) {
+        console.log('🏢 Identified company from analysis:', identifiedUrl);
+      } else if (!companyUrl) {
+        console.log('⚠️ Could not identify company from analysis, using default');
+      }
 
-      const { stream } = await generateICPProfiles(urlToUse, {
-        companyResearchData: [{
-          url: 'about:dossier',
-          title: 'Company Research Dossier',
-          content: dossierText,
-          quality: 1
-        }],
-        context: conversationContext
-      }, firecrawlApiKey || undefined);
+      // Choose between single-agent or multi-agent ICP analysis
+      const { stream } = useMultiAgent 
+        ? await generateMultiAgentICPProfiles(
+            `Create comprehensive ICP profiles for ${urlToUse}`,
+            [{
+              url: 'about:dossier',
+              title: 'Company Research Dossier',
+              content: dossierText,
+              quality: 1
+            }],
+            {
+              context: conversationContext,
+              useMultiAgent: true
+            },
+            firecrawlApiKey || undefined
+          )
+        : await generateICPProfiles(urlToUse, {
+            companyResearchData: [{
+              url: 'about:dossier',
+              title: 'Company Research Dossier',
+              content: dossierText,
+              quality: 1
+            }],
+            context: conversationContext
+          }, firecrawlApiKey || undefined);
 
       let finalContent = '';
       let streamingStarted = false;
@@ -508,6 +537,16 @@ export function Chat() {
         if (!event) continue;
 
         events.push(event);
+        
+        // Capture agent events for the activity panel (only for multi-agent mode)
+        if (useMultiAgent && event.type === 'thinking' && event.message?.startsWith('AGENT_EVENT:')) {
+          try {
+            const agentEvent = JSON.parse(event.message.replace('AGENT_EVENT:', ''));
+            setAgentEvents(prev => [...prev, agentEvent]);
+          } catch (error) {
+            console.error('Failed to parse agent event:', error);
+          }
+        }
         
         // Update the search display
         setMessages(prev => prev.map(msg => 
@@ -576,18 +615,44 @@ export function Chat() {
     }
   };
 
-  // Helper function to extract URL from text
-  const extractUrlFromText = (text: string): string | null => {
-    const urlMatch = text.match(/(https?:\/\/[^\s]+)/);
+  // Smart company identification from analysis content
+  const identifyCompanyFromAnalysis = (text: string): string | null => {
+    // First try to find direct URLs
+    const urlMatch = text.match(/(https?:\/\/[^\s\]]+)/);
     if (urlMatch) return urlMatch[1];
     
-    // Look for company name patterns and try to construct URLs
-    const companyNameMatch = text.match(/(?:Company Name|Intelligence Report):\s*([^\n\r]+)/i);
-    if (companyNameMatch) {
-      const companyName = companyNameMatch[1].trim();
-      // Simple heuristic to convert company name to URL
-      const domain = companyName.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return `https://${domain}.com`;
+    // Look for company name patterns in the analysis
+    const patterns = [
+      /Intelligence Report[:\s]*([A-Za-z][A-Za-z0-9\s]{1,20})/i,
+      /Company Name[:\s]*([A-Za-z][A-Za-z0-9\s]{1,20})/i,
+      /Analysis[:\s]*([A-Za-z][A-Za-z0-9\s]{1,20})/i,
+      /Report[:\s]*([A-Za-z][A-Za-z0-9\s]{1,20})/i,
+      /^([A-Z][a-zA-Z]{2,15})$/m, // Single company name on its own line
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const companyName = match[1].trim();
+        
+        // Skip generic words
+        if (/provides|comprehensive|overview|analysis|report|intelligence|strategic|opportunities|market|positioning|competitive|landscape/i.test(companyName)) {
+          continue;
+        }
+        
+        // Clean and validate company name
+        if (companyName.length >= 3 && companyName.length <= 20) {
+          // Convert to domain format
+          const domain = companyName.toLowerCase()
+            .replace(/[^a-z0-9]/g, '') // Remove all non-alphanumeric
+            .replace(/(inc|corp|ltd|llc)$/i, ''); // Remove suffixes
+          
+          if (domain.length >= 3) {
+            console.log(`🏢 Identified company: ${companyName} → ${domain}.com`);
+            return `https://${domain}.com`;
+          }
+        }
+      }
     }
     
     return null;
@@ -780,7 +845,7 @@ export function Chat() {
             className={`px-4 py-2 rounded-t-md ${activeTab === 'icp' ? 'bg-white dark:bg-zinc-950 border border-b-0 border-gray-200 dark:border-gray-800' : 'text-gray-600 dark:text-gray-300'}`}
             onClick={() => setActiveTab('icp')}
           >
-            ICP
+            ICP {activeTab === 'icp' && (useMultiAgent ? '🤖' : '🔍')}
           </button>
         </div>
       </div>
@@ -858,6 +923,40 @@ export function Chat() {
           </div>
 
           <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
+            {/* Multi-Agent Toggle */}
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900">Analysis Mode</h3>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {useMultiAgent 
+                      ? "🤖 Multi-Agent: 7 specialized agents working in parallel for comprehensive analysis"
+                      : "🔍 Single-Agent: Traditional focused analysis approach"
+                    }
+                  </p>
+                </div>
+                <button
+                  onClick={() => setUseMultiAgent(!useMultiAgent)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    useMultiAgent ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      useMultiAgent ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              <div className="mt-2 text-xs text-gray-500">
+                {useMultiAgent ? (
+                  <span className="text-green-600">✅ Recommended: Higher accuracy, faster processing, comprehensive coverage</span>
+                ) : (
+                  <span className="text-blue-600">ℹ️ Traditional: Single agent focused analysis</span>
+                )}
+              </div>
+            </div>
+            
             <textarea
               value={dossierInput}
               onChange={(e) => setDossierInput(e.target.value)}
@@ -882,7 +981,10 @@ export function Chat() {
                 disabled={!dossierInput.trim() || isSearching}
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {isSearching ? 'Analyzing…' : 'Start ICP Analysis'}
+                {isSearching 
+                  ? (useMultiAgent ? '🤖 Multi-Agent Analyzing…' : '🔍 Single-Agent Analyzing…') 
+                  : (useMultiAgent ? '🤖 Start Multi-Agent ICP Analysis' : '🔍 Start Single-Agent ICP Analysis')
+                }
               </button>
             </div>
           </div>
@@ -1042,6 +1144,15 @@ export function Chat() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Agent Activity Panel - Only show for multi-agent mode */}
+      {useMultiAgent && (
+        <AgentActivityPanel
+          events={agentEvents}
+          isVisible={showAgentPanel}
+          onToggle={() => setShowAgentPanel(!showAgentPanel)}
+        />
+      )}
     </div>
   );
 }
