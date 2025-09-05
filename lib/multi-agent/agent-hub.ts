@@ -185,6 +185,7 @@ export class AgentHub {
             const agent = this.agents.get(selectedAgent.id);
             
             if (agent) {
+              console.log(`Executing task ${task.type} with input:`, task.input);
               const result = await agent.executeTask({
                 id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 agentId: selectedAgent.id,
@@ -195,6 +196,7 @@ export class AgentHub {
                 createdAt: new Date()
               });
               
+              console.log(`Task ${task.type} completed with result:`, result);
               gatheredData[task.type] = result;
               
               this.emitEvent({

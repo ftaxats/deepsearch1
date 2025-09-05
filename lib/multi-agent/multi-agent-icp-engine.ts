@@ -111,12 +111,18 @@ export class MultiAgentICPEngine {
       // Execute ICP synthesis directly
       let icpProfiles: ICPProfile[] = [];
       try {
+        console.log('Looking for ICP synthesis agents...');
         const suitableAgents = this.agentHub.findSuitableAgents('icp-profile-synthesis');
+        console.log('Found suitable agents:', suitableAgents.length);
+        
         if (suitableAgents.length > 0) {
           const selectedAgent = this.agentHub.selectBestAgent(suitableAgents, synthesisTask.priority);
           const agent = this.agentHub.getAgent(selectedAgent.id);
           
+          console.log('Selected agent:', selectedAgent.id, 'Agent found:', !!agent);
+          
           if (agent) {
+            console.log('Executing ICP synthesis with input:', synthesisTask.input);
             icpProfiles = await agent.executeTask({
               id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               agentId: selectedAgent.id,
@@ -126,7 +132,11 @@ export class MultiAgentICPEngine {
               priority: synthesisTask.priority,
               createdAt: new Date()
             }) as ICPProfile[];
+            
+            console.log('ICP synthesis completed, profiles:', icpProfiles.length);
           }
+        } else {
+          console.log('No suitable agents found for ICP synthesis');
         }
       } catch (error) {
         console.error('Error executing ICP synthesis:', error);

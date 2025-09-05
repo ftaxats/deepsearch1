@@ -70,7 +70,8 @@ Always provide structured, actionable insights that can be used for ICP developm
     try {
       const { query, sources } = task.input as { query: string; sources: unknown[] };
 
-      this.emitThinking("Starting customer intelligence analysis", { query, sourceCount: sources.length });
+      console.log('Customer Intelligence Agent - Input:', { query, sourceCount: sources?.length || 0, sources });
+      this.emitThinking("Starting customer intelligence analysis", { query, sourceCount: sources?.length || 0 });
       this.emitProgress("Initializing analysis", 0);
 
       // Extract customer-related content from sources

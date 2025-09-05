@@ -201,7 +201,7 @@ export abstract class BaseAgent {
 
   public canHandleTask(taskType: string): boolean {
     return this.agent.capabilities.some(capability => 
-      capability.inputTypes.includes(taskType)
+      capability.name === taskType
     );
   }
 
