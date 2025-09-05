@@ -496,6 +496,13 @@ export class LangGraphSearchEngine {
       onEvent({ type: 'phase-update', phase: 'analyzing', message: '🧠 Agents analyzing gathered data and identifying patterns...' });
       onEvent({ type: 'thinking', message: '🔍 Target Company Discovery Agent: Finding specific companies matching patterns' });
 
+      // Debug: Log sources being passed to multi-agent engine
+      console.log('Sources being passed to multi-agent engine:', sources);
+      console.log('Source count:', sources.length);
+      if (sources.length > 0) {
+        console.log('First source structure:', sources[0]);
+      }
+
       // Perform multi-agent ICP analysis
       const icpProfiles = await this.multiAgentEngine.analyzeICPWithStreaming(
         query,

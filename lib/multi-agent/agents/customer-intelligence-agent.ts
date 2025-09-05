@@ -152,14 +152,28 @@ Always provide structured, actionable insights that can be used for ICP developm
       'challenge', 'solution', 'before', 'after', 'transformation'
     ];
 
-    return sources
-      .filter(source => (source as { content?: string }).content)
-      .map(source => (source as { content: string }).content)
-      .filter(content => 
-        customerKeywords.some(keyword => 
-          content.toLowerCase().includes(keyword.toLowerCase())
-        )
+    console.log('Extracting customer content from sources:', sources.length);
+    
+    const sourcesWithContent = sources.filter(source => {
+      const hasContent = !!(source as { content?: string }).content;
+      console.log('Source has content:', hasContent, 'Content length:', (source as { content?: string }).content?.length || 0);
+      return hasContent;
+    });
+    
+    console.log('Sources with content:', sourcesWithContent.length);
+    
+    const contentStrings = sourcesWithContent.map(source => (source as { content: string }).content);
+    
+    const filteredContent = contentStrings.filter(content => {
+      const hasKeywords = customerKeywords.some(keyword => 
+        content.toLowerCase().includes(keyword.toLowerCase())
       );
+      console.log('Content has customer keywords:', hasKeywords, 'Content preview:', content.substring(0, 100));
+      return hasKeywords;
+    });
+    
+    console.log('Filtered customer content:', filteredContent.length);
+    return filteredContent;
   }
 
   private async analyzeCaseStudies(content: string[], query: string): Promise<CustomerCaseStudy[]> {
