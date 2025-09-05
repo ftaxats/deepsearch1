@@ -76,7 +76,7 @@ Always provide data-driven insights with proper sourcing and confidence levels.`
 
   async executeTask(task: AgentTask): Promise<MarketResearchData> {
     try {
-      const { query, sources } = task.input;
+      const { query, sources } = task.input as { query: string; sources: unknown[] };
 
       this.emitThinking("Starting market research analysis", { query, sourceCount: sources.length });
       this.emitProgress("Initializing market research", 0);
@@ -161,8 +161,8 @@ Always provide data-driven insights with proper sourcing and confidence levels.`
     ];
 
     return sources
-      .filter(source => source.content)
-      .map(source => source.content)
+      .filter(source => (source as { content?: string }).content)
+      .map(source => (source as { content: string }).content)
       .filter(content => 
         marketKeywords.some(keyword => 
           content.toLowerCase().includes(keyword.toLowerCase())
@@ -336,12 +336,14 @@ Analyze the regulatory environment and identify key regulations.`)
   }
 
   // Fallback text parsing methods
-  private extractIndustryTrendsFromText(_text: string): IndustryTrend[] {
+  private extractIndustryTrendsFromText(text: string): IndustryTrend[] {
+    console.log(`Extracting industry trends from ${text.length} characters`);
     // Implement text parsing logic for industry trends
     return [];
   }
 
-  private extractMarketSizeFromText(_text: string): MarketSizeData {
+  private extractMarketSizeFromText(text: string): MarketSizeData {
+    console.log(`Extracting market size from ${text.length} characters`);
     // Implement text parsing logic for market size
     return {
       tam: 'Not available',
@@ -352,17 +354,20 @@ Analyze the regulatory environment and identify key regulations.`)
     };
   }
 
-  private extractCompetitiveDataFromText(_text: string): CompetitiveData[] {
+  private extractCompetitiveDataFromText(text: string): CompetitiveData[] {
+    console.log(`Extracting competitive data from ${text.length} characters`);
     // Implement text parsing logic for competitive data
     return [];
   }
 
-  private extractGrowthRatesFromText(_text: string): GrowthRate[] {
+  private extractGrowthRatesFromText(text: string): GrowthRate[] {
+    console.log(`Extracting growth rates from ${text.length} characters`);
     // Implement text parsing logic for growth rates
     return [];
   }
 
-  private extractRegulatoryInfoFromText(_text: string): RegulatoryInfo[] {
+  private extractRegulatoryInfoFromText(text: string): RegulatoryInfo[] {
+    console.log(`Extracting regulatory info from ${text.length} characters`);
     // Implement text parsing logic for regulatory info
     return [];
   }

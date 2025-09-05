@@ -75,7 +75,7 @@ Always provide structured, actionable insights about technology usage and requir
 
   async executeTask(task: AgentTask): Promise<TechnographicData> {
     try {
-      const { query, sources } = task.input;
+      const { query, sources } = task.input as { query: string; sources: unknown[] };
 
       // Extract technographic content from sources
       const technographicContent = this.extractTechnographicContent(sources);
@@ -119,8 +119,8 @@ Always provide structured, actionable insights about technology usage and requir
     ];
 
     return sources
-      .filter(source => source.content)
-      .map(source => source.content)
+      .filter(source => (source as { content?: string }).content)
+      .map(source => (source as { content: string }).content)
       .filter(content => 
         technographicKeywords.some(keyword => 
           content.toLowerCase().includes(keyword.toLowerCase())
@@ -259,22 +259,26 @@ Extract and analyze platform requirements and create requirement profiles.`)
   }
 
   // Fallback text parsing methods
-  private extractTechStacksFromText(_text: string): TechStack[] {
+  private extractTechStacksFromText(text: string): TechStack[] {
+    console.log(`Extracting tech stacks from ${text.length} characters`);
     // Implement text parsing logic for tech stacks
     return [];
   }
 
-  private extractIntegrationsFromText(_text: string): Integration[] {
+  private extractIntegrationsFromText(text: string): Integration[] {
+    console.log(`Extracting integrations from ${text.length} characters`);
     // Implement text parsing logic for integrations
     return [];
   }
 
-  private extractDigitalMaturityLevelsFromText(_text: string): DigitalMaturityLevel[] {
+  private extractDigitalMaturityLevelsFromText(text: string): DigitalMaturityLevel[] {
+    console.log(`Extracting digital maturity levels from ${text.length} characters`);
     // Implement text parsing logic for digital maturity levels
     return [];
   }
 
-  private extractPlatformRequirementsFromText(_text: string): PlatformRequirement[] {
+  private extractPlatformRequirementsFromText(text: string): PlatformRequirement[] {
+    console.log(`Extracting platform requirements from ${text.length} characters`);
     // Implement text parsing logic for platform requirements
     return [];
   }

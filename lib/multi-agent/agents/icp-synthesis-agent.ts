@@ -64,7 +64,7 @@ Always create profiles that are specific, actionable, and based on real customer
 
   async executeTask(task: AgentTask): Promise<ICPProfile[]> {
     try {
-      const { combinedResearchData, query } = task.input;
+      const { combinedResearchData, query } = task.input as { combinedResearchData: CombinedResearchData; query: string };
 
       if (!combinedResearchData) {
         throw new Error('No combined research data provided');
@@ -241,17 +241,20 @@ Generate actionable insights and recommendations for each ICP profile.`)
   }
 
   // Fallback text parsing methods
-  private extractICPProfilesFromText(_text: string): ICPProfile[] {
+  private extractICPProfilesFromText(text: string): ICPProfile[] {
+    console.log(`Extracting ICP profiles from ${text.length} characters`);
     // Implement text parsing logic for ICP profiles
     return [];
   }
 
-  private extractValidatedProfilesFromText(_text: string): ICPProfile[] {
+  private extractValidatedProfilesFromText(text: string): ICPProfile[] {
+    console.log(`Extracting validated profiles from ${text.length} characters`);
     // Implement text parsing logic for validated profiles
     return [];
   }
 
-  private extractProfilesWithInsightsFromText(_text: string): ICPProfile[] {
+  private extractProfilesWithInsightsFromText(text: string): ICPProfile[] {
+    console.log(`Extracting profiles with insights from ${text.length} characters`);
     // Implement text parsing logic for profiles with insights
     return [];
   }

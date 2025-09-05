@@ -1,4 +1,5 @@
 import { ChatOpenAI } from "@langchain/openai";
+import { BaseMessage } from "@langchain/core/messages";
 import { 
   Agent, 
   AgentMessage, 
@@ -90,13 +91,19 @@ export abstract class BaseAgent {
         data: message.payload
       });
 
+      const payload = message.payload as { 
+        taskType: string; 
+        input: unknown; 
+        priority?: number 
+      };
+      
       const task: AgentTask = {
         id: `task-${Date.now()}`,
         agentId: this.agent.id,
-        type: message.payload.taskType,
+        type: payload.taskType,
         status: 'in_progress',
-        input: message.payload.input,
-        priority: message.payload.priority || 1,
+        input: payload.input,
+        priority: payload.priority || 1,
         createdAt: new Date()
       };
 
@@ -136,7 +143,7 @@ export abstract class BaseAgent {
     }
   }
 
-  protected async callLLM(messages: unknown[], streaming: boolean = false): Promise<string> {
+  protected async callLLM(messages: BaseMessage[], streaming: boolean = false): Promise<string> {
     try {
       if (streaming) {
         const stream = await this.streamingLlm.stream(messages);
@@ -161,10 +168,11 @@ export abstract class BaseAgent {
   protected async searchAndExtractData(
     query: string, 
     extractionSchema: unknown,
-    _maxResults: number = 10
+    maxResults: number = 10
   ): Promise<unknown[]> {
     // This would integrate with your existing search and extraction logic
     // For now, returning a placeholder structure
+    console.log(`Searching for: ${query}, max results: ${maxResults}`);
     return [];
   }
 
@@ -197,9 +205,10 @@ export abstract class BaseAgent {
     );
   }
 
-  protected validateInput(input: unknown, _expectedType: string): boolean {
+  protected validateInput(input: unknown, expectedType: string): boolean {
     // Basic validation logic - can be extended by specialized agents
-    return input && typeof input === 'object';
+    console.log(`Validating input for type: ${expectedType}`);
+    return Boolean(input && typeof input === 'object');
   }
 
   protected createErrorResponse(error: string, taskId?: string): AgentMessage {

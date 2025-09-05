@@ -83,7 +83,7 @@ Always provide structured, quantifiable data with clear categorizations and exam
 
   async executeTask(task: AgentTask): Promise<FirmographicData> {
     try {
-      const { query, sources } = task.input;
+      const { query, sources } = task.input as { query: string; sources: unknown[] };
 
       // Extract firmographic content from sources
       const firmographicContent = this.extractFirmographicContent(sources);
@@ -131,8 +131,8 @@ Always provide structured, quantifiable data with clear categorizations and exam
     ];
 
     return sources
-      .filter(source => source.content)
-      .map(source => source.content)
+      .filter(source => (source as { content?: string }).content)
+      .map(source => (source as { content: string }).content)
       .filter(content => 
         firmographicKeywords.some(keyword => 
           content.toLowerCase().includes(keyword.toLowerCase())
@@ -304,27 +304,32 @@ Extract and analyze industry segments and create industry profiles.`)
   }
 
   // Fallback text parsing methods
-  private extractCompanySizeProfilesFromText(_text: string): CompanySizeProfile[] {
+  private extractCompanySizeProfilesFromText(text: string): CompanySizeProfile[] {
+    console.log(`Extracting company size profiles from ${text.length} characters`);
     // Implement text parsing logic for company size profiles
     return [];
   }
 
-  private extractRevenueRangesFromText(_text: string): RevenueRange[] {
+  private extractRevenueRangesFromText(text: string): RevenueRange[] {
+    console.log(`Extracting revenue ranges from ${text.length} characters`);
     // Implement text parsing logic for revenue ranges
     return [];
   }
 
-  private extractFundingStagesFromText(_text: string): FundingStage[] {
+  private extractFundingStagesFromText(text: string): FundingStage[] {
+    console.log(`Extracting funding stages from ${text.length} characters`);
     // Implement text parsing logic for funding stages
     return [];
   }
 
-  private extractGeographicProfilesFromText(_text: string): GeographicProfile[] {
+  private extractGeographicProfilesFromText(text: string): GeographicProfile[] {
+    console.log(`Extracting geographic profiles from ${text.length} characters`);
     // Implement text parsing logic for geographic profiles
     return [];
   }
 
-  private extractIndustrySegmentsFromText(_text: string): IndustrySegment[] {
+  private extractIndustrySegmentsFromText(text: string): IndustrySegment[] {
+    console.log(`Extracting industry segments from ${text.length} characters`);
     // Implement text parsing logic for industry segments
     return [];
   }

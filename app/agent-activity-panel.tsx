@@ -147,9 +147,9 @@ export function AgentActivityPanel({ events, isVisible, onToggle }: AgentActivit
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         {new Date(event.timestamp).toLocaleTimeString()}
                       </div>
-                      {event.data && (
+                      {Boolean(event.data) && (
                         <div className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                          {JSON.stringify(event.data, null, 2).substring(0, 100)}...
+                          {JSON.stringify(event.data as Record<string, unknown>, null, 2).substring(0, 100)}...
                         </div>
                       )}
                     </div>

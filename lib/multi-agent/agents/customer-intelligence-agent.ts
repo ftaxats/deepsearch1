@@ -68,7 +68,7 @@ Always provide structured, actionable insights that can be used for ICP developm
 
   async executeTask(task: AgentTask): Promise<CustomerIntelligenceData> {
     try {
-      const { query, sources } = task.input;
+      const { query, sources } = task.input as { query: string; sources: unknown[] };
 
       this.emitThinking("Starting customer intelligence analysis", { query, sourceCount: sources.length });
       this.emitProgress("Initializing analysis", 0);
@@ -152,8 +152,8 @@ Always provide structured, actionable insights that can be used for ICP developm
     ];
 
     return sources
-      .filter(source => source.content)
-      .map(source => source.content)
+      .filter(source => (source as { content?: string }).content)
+      .map(source => (source as { content: string }).content)
       .filter(content => 
         customerKeywords.some(keyword => 
           content.toLowerCase().includes(keyword.toLowerCase())
@@ -338,27 +338,32 @@ Identify common patterns and characteristics.`)
   }
 
   // Fallback text parsing methods
-  private extractCaseStudiesFromText(_text: string): CustomerCaseStudy[] {
+  private extractCaseStudiesFromText(text: string): CustomerCaseStudy[] {
+    console.log(`Extracting case studies from ${text.length} characters`);
     // Implement text parsing logic for case studies
     return [];
   }
 
-  private extractTestimonialsFromText(_text: string): CustomerTestimonial[] {
+  private extractTestimonialsFromText(text: string): CustomerTestimonial[] {
+    console.log(`Extracting testimonials from ${text.length} characters`);
     // Implement text parsing logic for testimonials
     return [];
   }
 
-  private extractSuccessStoriesFromText(_text: string): SuccessStory[] {
+  private extractSuccessStoriesFromText(text: string): SuccessStory[] {
+    console.log(`Extracting success stories from ${text.length} characters`);
     // Implement text parsing logic for success stories
     return [];
   }
 
-  private extractCustomerJourneyFromText(_text: string): CustomerJourneyStep[] {
+  private extractCustomerJourneyFromText(text: string): CustomerJourneyStep[] {
+    console.log(`Extracting customer journey from ${text.length} characters`);
     // Implement text parsing logic for customer journey
     return [];
   }
 
-  private extractCustomerPatternsFromText(_text: string): CustomerPattern[] {
+  private extractCustomerPatternsFromText(text: string): CustomerPattern[] {
+    console.log(`Extracting customer patterns from ${text.length} characters`);
     // Implement text parsing logic for customer patterns
     return [];
   }

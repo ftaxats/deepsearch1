@@ -75,7 +75,7 @@ Always provide insights that help understand the "why" behind customer behavior.
 
   async executeTask(task: AgentTask): Promise<PsychographicData> {
     try {
-      const { query, sources } = task.input;
+      const { query, sources } = task.input as { query: string; sources: unknown[] };
 
       // Extract psychographic content from sources
       const psychographicContent = this.extractPsychographicContent(sources);
@@ -119,8 +119,8 @@ Always provide insights that help understand the "why" behind customer behavior.
     ];
 
     return sources
-      .filter(source => source.content)
-      .map(source => source.content)
+      .filter(source => (source as { content?: string }).content)
+      .map(source => (source as { content: string }).content)
       .filter(content => 
         psychographicKeywords.some(keyword => 
           content.toLowerCase().includes(keyword.toLowerCase())
@@ -260,22 +260,26 @@ Extract and analyze budget behaviors and create behavior profiles.`)
   }
 
   // Fallback text parsing methods
-  private extractPainPointsFromText(_text: string): PainPoint[] {
+  private extractPainPointsFromText(text: string): PainPoint[] {
+    console.log(`Extracting pain points from ${text.length} characters`);
     // Implement text parsing logic for pain points
     return [];
   }
 
-  private extractBuyingTriggersFromText(_text: string): BuyingTrigger[] {
+  private extractBuyingTriggersFromText(text: string): BuyingTrigger[] {
+    console.log(`Extracting buying triggers from ${text.length} characters`);
     // Implement text parsing logic for buying triggers
     return [];
   }
 
-  private extractDecisionProcessesFromText(_text: string): DecisionProcess[] {
+  private extractDecisionProcessesFromText(text: string): DecisionProcess[] {
+    console.log(`Extracting decision processes from ${text.length} characters`);
     // Implement text parsing logic for decision processes
     return [];
   }
 
-  private extractBudgetBehaviorsFromText(_text: string): BudgetBehavior[] {
+  private extractBudgetBehaviorsFromText(text: string): BudgetBehavior[] {
+    console.log(`Extracting budget behaviors from ${text.length} characters`);
     // Implement text parsing logic for budget behaviors
     return [];
   }

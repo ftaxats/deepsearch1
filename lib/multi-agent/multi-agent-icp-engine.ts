@@ -113,7 +113,7 @@ export class MultiAgentICPEngine {
       // Wait for synthesis to complete
       const icpProfiles = await this.waitForTaskCompletion(synthesisTaskId);
 
-      return icpProfiles;
+      return icpProfiles as ICPProfile[];
 
     } catch (error) {
       throw new Error(`Multi-Agent ICP Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

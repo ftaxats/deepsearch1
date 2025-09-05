@@ -434,7 +434,7 @@ export class LangGraphSearchEngine {
     query: string,
     sources: Source[],
     onEvent: (event: SearchEvent) => void,
-    _options?: { 
+    options?: { 
       context?: { query: string; response: string }[];
       useMultiAgent?: boolean;
     }
@@ -446,6 +446,11 @@ export class LangGraphSearchEngine {
 
       onEvent({ type: 'phase-update', phase: 'understanding', message: '🤖 Initializing multi-agent ICP analysis system...' });
       onEvent({ type: 'thinking', message: '🚀 Deploying specialized agents for comprehensive ICP research' });
+      
+      // Log options if provided
+      if (options?.useMultiAgent) {
+        onEvent({ type: 'thinking', message: '✅ Multi-agent mode confirmed' });
+      }
 
       // Show agent initialization
       const systemStatus = this.multiAgentEngine.getSystemStatus();
@@ -2899,7 +2904,17 @@ Constraints:
     result += `## 🎯 Generated ICP Profiles\n\n`;
     
     icpProfiles.forEach((profile, index) => {
-      const profileObj = profile as { name?: string; priority?: string; characteristics?: any; firmographics?: any; technographics?: any; psychographics?: any; targetCompanies?: any; insights?: any; validation?: any };
+      const profileObj = profile as { 
+        name?: string; 
+        priority?: string; 
+        characteristics?: Record<string, unknown>; 
+        firmographics?: Record<string, unknown>; 
+        technographics?: Record<string, unknown>; 
+        psychographics?: Record<string, unknown>; 
+        targetCompanies?: unknown[]; 
+        insights?: Record<string, unknown>; 
+        validation?: Record<string, unknown> 
+      };
       result += `### ICP Profile ${index + 1}: ${profileObj.name || `Profile ${index + 1}`}\n\n`;
       result += `**Priority:** ${profileObj.priority || 'Not specified'}\n\n`;
       

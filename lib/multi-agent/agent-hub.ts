@@ -4,7 +4,13 @@ import {
   AgentTask, 
   AgentEvent, 
   MultiAgentConfig,
-  CombinedResearchData 
+  CombinedResearchData,
+  CustomerIntelligenceData,
+  MarketResearchData,
+  FirmographicData,
+  TechnographicData,
+  PsychographicData,
+  TargetCompanyData
 } from './types';
 import { BaseAgent } from './base-agent';
 
@@ -213,7 +219,7 @@ export class AgentHub {
         agentId: 'coordinator',
         timestamp: new Date(),
         message: '✅ Phase 2 complete: Target companies discovered and validated',
-        data: { targetCompanies: targetCompanyData?.companies?.length || 0 }
+        data: { targetCompanies: (targetCompanyData as { companies?: unknown[] })?.companies?.length || 0 }
       });
 
       // Combine all research data
@@ -226,12 +232,12 @@ export class AgentHub {
       });
 
       const combinedData: CombinedResearchData = {
-        customerIntelligence: gatheredData['customer-intelligence'],
-        marketResearch: gatheredData['market-research'],
-        firmographicData: gatheredData['firmographic-analysis'],
-        technographicData: gatheredData['technographic-analysis'],
-        psychographicData: gatheredData['psychographic-analysis'],
-        targetCompanyData: targetCompanyData,
+        customerIntelligence: gatheredData['customer-intelligence'] as CustomerIntelligenceData,
+        marketResearch: gatheredData['market-research'] as MarketResearchData,
+        firmographicData: gatheredData['firmographic-analysis'] as FirmographicData,
+        technographicData: gatheredData['technographic-analysis'] as TechnographicData,
+        psychographicData: gatheredData['psychographic-analysis'] as PsychographicData,
+        targetCompanyData: targetCompanyData as TargetCompanyData,
         metadata: {
           totalSources: initialSources.length,
           confidence: this.calculateOverallConfidence(gatheredData),
@@ -298,11 +304,15 @@ export class AgentHub {
   }
 
   // Select the best agent for a task based on priority and workload
-  private selectBestAgent(agents: Agent[], _priority: number): Agent {
-    // Sort by status (idle agents first) and then by current workload
+  private selectBestAgent(agents: Agent[], priority: number): Agent {
+    // Sort by status (idle agents first), then by priority, then by current workload
     const sortedAgents = agents.sort((a, b) => {
       if (a.status === 'idle' && b.status !== 'idle') return -1;
       if (a.status !== 'idle' && b.status === 'idle') return 1;
+      // Higher priority tasks get agents with lighter workloads
+      if (priority > 5) {
+        return a.messageQueue.length - b.messageQueue.length;
+      }
       return a.messageQueue.length - b.messageQueue.length;
     });
 

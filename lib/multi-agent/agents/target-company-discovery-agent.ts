@@ -68,7 +68,12 @@ Always provide real, verifiable companies with specific reasoning for why they f
 
   async executeTask(task: AgentTask): Promise<TargetCompanyData> {
     try {
-      const { query, customerIntelligence, marketResearch, firmographicData } = task.input;
+      const { query, customerIntelligence, marketResearch, firmographicData } = task.input as { 
+        query: string; 
+        customerIntelligence: unknown; 
+        marketResearch: unknown; 
+        firmographicData: unknown 
+      };
 
       // Extract ICP criteria from gathered data
       const icpCriteria = this.extractICPCriteria(customerIntelligence, marketResearch, firmographicData);
@@ -105,12 +110,13 @@ Always provide real, verifiable companies with specific reasoning for why they f
     const criteria: Record<string, unknown> = {};
 
     // Extract from customer intelligence
-    if (customerIntelligence?.patterns) {
-      criteria.industryPatterns = customerIntelligence.patterns
+    const customerData = customerIntelligence as { patterns?: unknown[] };
+    if (customerData?.patterns) {
+      criteria.industryPatterns = customerData.patterns
         .filter((p: unknown) => (p as { characteristic: string }).characteristic.includes('industry'))
         .map((p: unknown) => (p as { examples: unknown }).examples);
       
-      criteria.sizePatterns = customerIntelligence.patterns
+      criteria.sizePatterns = customerData.patterns
         .filter((p: unknown) => {
           const pattern = p as { characteristic: string };
           return pattern.characteristic.includes('size') || pattern.characteristic.includes('employee');
@@ -119,32 +125,38 @@ Always provide real, verifiable companies with specific reasoning for why they f
     }
 
     // Extract from market research
-    if (marketResearch?.industryTrends) {
-      criteria.targetIndustries = marketResearch.industryTrends
+    const marketData = marketResearch as { industryTrends?: unknown[] };
+    if (marketData?.industryTrends) {
+      criteria.targetIndustries = marketData.industryTrends
         .map((trend: unknown) => (trend as { trend: string }).trend)
         .filter((trend: string) => trend.includes('industry') || trend.includes('sector'));
     }
 
     // Extract from firmographic data
-    if (firmographicData?.companySizes) {
-      criteria.sizeRanges = firmographicData.companySizes
+    const firmographicInfo = firmographicData as { 
+      companySizes?: unknown[]; 
+      industrySegments?: unknown[]; 
+      geographicData?: unknown[] 
+    };
+    if (firmographicInfo?.companySizes) {
+      criteria.sizeRanges = firmographicInfo.companySizes
         .map((size: unknown) => (size as { range: string }).range);
     }
 
-    if (firmographicData?.industrySegments) {
-      criteria.industrySegments = firmographicData.industrySegments
+    if (firmographicInfo?.industrySegments) {
+      criteria.industrySegments = firmographicInfo.industrySegments
         .map((segment: unknown) => (segment as { segment: string }).segment);
     }
 
-    if (firmographicData?.geographicData) {
-      criteria.targetRegions = firmographicData.geographicData
+    if (firmographicInfo?.geographicData) {
+      criteria.targetRegions = firmographicInfo.geographicData
         .map((geo: unknown) => (geo as { region: string }).region);
     }
 
     return criteria;
   }
 
-  private async discoverTargetCompanies(criteria: Record<string, any>, query: string): Promise<TargetCompany[]> {
+  private async discoverTargetCompanies(criteria: Record<string, unknown>, query: string): Promise<TargetCompany[]> {
     const messages = [
       new SystemMessage(`${this.getSystemPrompt()}
 
@@ -250,17 +262,20 @@ Create market maps and segment the companies logically.`)
   }
 
   // Fallback text parsing methods
-  private extractTargetCompaniesFromText(_text: string): TargetCompany[] {
+  private extractTargetCompaniesFromText(text: string): TargetCompany[] {
+    console.log(`Extracting target companies from ${text.length} characters`);
     // Implement text parsing logic for target companies
     return [];
   }
 
-  private extractCompanyValidationsFromText(_text: string): CompanyValidation[] {
+  private extractCompanyValidationsFromText(text: string): CompanyValidation[] {
+    console.log(`Extracting company validations from ${text.length} characters`);
     // Implement text parsing logic for company validations
     return [];
   }
 
-  private extractMarketMapsFromText(_text: string): MarketMap[] {
+  private extractMarketMapsFromText(text: string): MarketMap[] {
+    console.log(`Extracting market maps from ${text.length} characters`);
     // Implement text parsing logic for market maps
     return [];
   }
