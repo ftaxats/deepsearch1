@@ -1,12 +1,10 @@
 import { ChatOpenAI } from "@langchain/openai";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { 
   Agent, 
   AgentMessage, 
   AgentTask, 
   AgentCapability, 
-  AgentEvent,
-  MultiAgentConfig 
+  AgentEvent
 } from './types';
 
 export abstract class BaseAgent {
@@ -37,7 +35,7 @@ export abstract class BaseAgent {
   }
 
   // Abstract methods that must be implemented by specialized agents
-  abstract executeTask(task: AgentTask): Promise<any>;
+  abstract executeTask(task: AgentTask): Promise<unknown>;
   abstract getSystemPrompt(): string;
 
   // Common agent functionality
@@ -50,7 +48,7 @@ export abstract class BaseAgent {
   }
 
   // Enhanced method to emit detailed thinking process
-  protected emitThinking(message: string, details?: any): void {
+  protected emitThinking(message: string, details?: unknown): void {
     this.emitEvent({
       type: 'agent-started',
       agentId: this.agent.id,
@@ -61,7 +59,7 @@ export abstract class BaseAgent {
   }
 
   // Enhanced method to emit progress updates
-  protected emitProgress(step: string, progress: number, details?: any): void {
+  protected emitProgress(step: string, progress: number, details?: unknown): void {
     this.emitEvent({
       type: 'data-shared',
       agentId: this.agent.id,
@@ -117,25 +115,8 @@ export abstract class BaseAgent {
         data: result
       });
 
-      // Send response back to sender
-      const response: AgentMessage = {
-        id: `response-${Date.now()}`,
-        from: this.agent.id,
-        to: message.from,
-        type: 'response',
-        payload: {
-          taskId: task.id,
-          result,
-          metadata: {
-            agentId: this.agent.id,
-            agentName: this.agent.name,
-            completedAt: task.completedAt,
-            duration: task.completedAt.getTime() - task.createdAt.getTime()
-          }
-        },
-        timestamp: new Date(),
-        priority: message.priority
-      };
+      // TODO: Send response back to sender via hub
+      // const response: AgentMessage = { ... };
 
       this.agent.status = 'idle';
       this.agent.currentTask = undefined;
@@ -150,22 +131,12 @@ export abstract class BaseAgent {
         data: error
       });
 
-      const errorResponse: AgentMessage = {
-        id: `error-${Date.now()}`,
-        from: this.agent.id,
-        to: message.from,
-        type: 'error',
-        payload: {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          taskId: message.payload.taskId
-        },
-        timestamp: new Date(),
-        priority: 'high'
-      };
+      // TODO: Send error response back to sender via hub
+      // const errorResponse: AgentMessage = { ... };
     }
   }
 
-  protected async callLLM(messages: any[], streaming: boolean = false): Promise<string> {
+  protected async callLLM(messages: unknown[], streaming: boolean = false): Promise<string> {
     try {
       if (streaming) {
         const stream = await this.streamingLlm.stream(messages);
@@ -189,9 +160,9 @@ export abstract class BaseAgent {
 
   protected async searchAndExtractData(
     query: string, 
-    extractionSchema: any,
-    maxResults: number = 10
-  ): Promise<any[]> {
+    extractionSchema: unknown,
+    _maxResults: number = 10
+  ): Promise<unknown[]> {
     // This would integrate with your existing search and extraction logic
     // For now, returning a placeholder structure
     return [];
@@ -226,7 +197,7 @@ export abstract class BaseAgent {
     );
   }
 
-  protected validateInput(input: any, expectedType: string): boolean {
+  protected validateInput(input: unknown, _expectedType: string): boolean {
     // Basic validation logic - can be extended by specialized agents
     return input && typeof input === 'object';
   }
@@ -246,7 +217,7 @@ export abstract class BaseAgent {
     };
   }
 
-  protected createSuccessResponse(result: any, taskId: string, to: string): AgentMessage {
+  protected createSuccessResponse(result: unknown, taskId: string, to: string): AgentMessage {
     return {
       id: `response-${Date.now()}`,
       from: this.agent.id,

@@ -108,7 +108,7 @@ Always provide insights that help understand the "why" behind customer behavior.
     }
   }
 
-  private extractPsychographicContent(sources: any[]): string[] {
+  private extractPsychographicContent(sources: unknown[]): string[] {
     const psychographicKeywords = [
       'pain point', 'challenge', 'problem', 'issue', 'struggle',
       'buying', 'purchase', 'decision', 'trigger', 'motivation',
@@ -260,22 +260,22 @@ Extract and analyze budget behaviors and create behavior profiles.`)
   }
 
   // Fallback text parsing methods
-  private extractPainPointsFromText(text: string): PainPoint[] {
+  private extractPainPointsFromText(_text: string): PainPoint[] {
     // Implement text parsing logic for pain points
     return [];
   }
 
-  private extractBuyingTriggersFromText(text: string): BuyingTrigger[] {
+  private extractBuyingTriggersFromText(_text: string): BuyingTrigger[] {
     // Implement text parsing logic for buying triggers
     return [];
   }
 
-  private extractDecisionProcessesFromText(text: string): DecisionProcess[] {
+  private extractDecisionProcessesFromText(_text: string): DecisionProcess[] {
     // Implement text parsing logic for decision processes
     return [];
   }
 
-  private extractBudgetBehaviorsFromText(text: string): BudgetBehavior[] {
+  private extractBudgetBehaviorsFromText(_text: string): BudgetBehavior[] {
     // Implement text parsing logic for budget behaviors
     return [];
   }

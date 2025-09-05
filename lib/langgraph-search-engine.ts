@@ -434,7 +434,7 @@ export class LangGraphSearchEngine {
     query: string,
     sources: Source[],
     onEvent: (event: SearchEvent) => void,
-    options?: { 
+    _options?: { 
       context?: { query: string; response: string }[];
       useMultiAgent?: boolean;
     }
@@ -2876,21 +2876,22 @@ Constraints:
   }
 
   // Helper method to format multi-agent ICP results
-  private formatMultiAgentICPResults(icpProfiles: any[], agentEvents: any[]): string {
+  private formatMultiAgentICPResults(icpProfiles: unknown[], agentEvents: unknown[]): string {
     let result = '# Multi-Agent ICP Analysis Results\n\n';
     
     // Add system summary
     result += `## 🤖 Multi-Agent System Summary\n\n`;
-    result += `- **Total Agents Deployed:** ${agentEvents.filter(e => e.type === 'agent-started').length}\n`;
-    result += `- **Successful Completions:** ${agentEvents.filter(e => e.type === 'agent-completed').length}\n`;
-    result += `- **Data Sharing Events:** ${agentEvents.filter(e => e.type === 'data-shared').length}\n`;
+    result += `- **Total Agents Deployed:** ${agentEvents.filter((e: unknown) => (e as { type: string }).type === 'agent-started').length}\n`;
+    result += `- **Successful Completions:** ${agentEvents.filter((e: unknown) => (e as { type: string }).type === 'agent-completed').length}\n`;
+    result += `- **Data Sharing Events:** ${agentEvents.filter((e: unknown) => (e as { type: string }).type === 'data-shared').length}\n`;
     result += `- **ICP Profiles Generated:** ${icpProfiles.length}\n\n`;
     
     // Add agent activity log
     result += `## 📊 Agent Activity Log\n\n`;
     agentEvents.forEach((event, index) => {
-      const timestamp = event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : 'Unknown';
-      result += `${index + 1}. **[${timestamp}]** ${event.agentId}: ${event.message || event.type}\n`;
+      const eventObj = event as { timestamp?: string; agentId?: string; message?: string; type?: string };
+      const timestamp = eventObj.timestamp ? new Date(eventObj.timestamp).toLocaleTimeString() : 'Unknown';
+      result += `${index + 1}. **[${timestamp}]** ${eventObj.agentId || 'Unknown'}: ${eventObj.message || eventObj.type || 'Unknown'}\n`;
     });
     result += '\n';
     
@@ -2898,87 +2899,89 @@ Constraints:
     result += `## 🎯 Generated ICP Profiles\n\n`;
     
     icpProfiles.forEach((profile, index) => {
-      result += `### ICP Profile ${index + 1}: ${profile.name || `Profile ${index + 1}`}\n\n`;
-      result += `**Priority:** ${profile.priority || 'Not specified'}\n\n`;
+      const profileObj = profile as { name?: string; priority?: string; characteristics?: any; firmographics?: any; technographics?: any; psychographics?: any; targetCompanies?: any; insights?: any; validation?: any };
+      result += `### ICP Profile ${index + 1}: ${profileObj.name || `Profile ${index + 1}`}\n\n`;
+      result += `**Priority:** ${profileObj.priority || 'Not specified'}\n\n`;
       
-      if (profile.characteristics) {
+      if (profileObj.characteristics) {
         result += `#### 📋 Characteristics\n`;
-        result += `- **Industry:** ${profile.characteristics.industry || 'Not specified'}\n`;
-        result += `- **Company Size:** ${profile.characteristics.companySize || 'Not specified'}\n`;
-        result += `- **Revenue Range:** ${profile.characteristics.revenueRange || 'Not specified'}\n`;
-        result += `- **Geographic Focus:** ${profile.characteristics.geographicFocus || 'Not specified'}\n`;
-        result += `- **Business Model:** ${profile.characteristics.businessModel || 'Not specified'}\n\n`;
+        result += `- **Industry:** ${profileObj.characteristics.industry || 'Not specified'}\n`;
+        result += `- **Company Size:** ${profileObj.characteristics.companySize || 'Not specified'}\n`;
+        result += `- **Revenue Range:** ${profileObj.characteristics.revenueRange || 'Not specified'}\n`;
+        result += `- **Geographic Focus:** ${profileObj.characteristics.geographicFocus || 'Not specified'}\n`;
+        result += `- **Business Model:** ${profileObj.characteristics.businessModel || 'Not specified'}\n\n`;
       }
       
-      if (profile.firmographics) {
+      if (profileObj.firmographics) {
         result += `#### 🏢 Firmographics\n`;
-        result += `- **Funding Stage:** ${profile.firmographics.fundingStage || 'Not specified'}\n`;
-        result += `- **Growth Stage:** ${profile.firmographics.growthStage || 'Not specified'}\n`;
-        result += `- **Market Position:** ${profile.firmographics.marketPosition || 'Not specified'}\n`;
-        result += `- **Geographic Presence:** ${profile.firmographics.geographicPresence || 'Not specified'}\n\n`;
+        result += `- **Funding Stage:** ${profileObj.firmographics.fundingStage || 'Not specified'}\n`;
+        result += `- **Growth Stage:** ${profileObj.firmographics.growthStage || 'Not specified'}\n`;
+        result += `- **Market Position:** ${profileObj.firmographics.marketPosition || 'Not specified'}\n`;
+        result += `- **Geographic Presence:** ${profileObj.firmographics.geographicPresence || 'Not specified'}\n\n`;
       }
       
-      if (profile.technographics) {
+      if (profileObj.technographics) {
         result += `#### 💻 Technographics\n`;
-        result += `- **Technology Maturity:** ${profile.technographics.technologyMaturity || 'Not specified'}\n`;
-        result += `- **Digital Transformation Stage:** ${profile.technographics.digitalTransformationStage || 'Not specified'}\n`;
-        if (profile.technographics.currentTechStack) {
-          result += `- **Current Tech Stack:** ${Array.isArray(profile.technographics.currentTechStack) ? profile.technographics.currentTechStack.join(', ') : profile.technographics.currentTechStack}\n`;
+        result += `- **Technology Maturity:** ${profileObj.technographics.technologyMaturity || 'Not specified'}\n`;
+        result += `- **Digital Transformation Stage:** ${profileObj.technographics.digitalTransformationStage || 'Not specified'}\n`;
+        if (profileObj.technographics.currentTechStack) {
+          result += `- **Current Tech Stack:** ${Array.isArray(profileObj.technographics.currentTechStack) ? profileObj.technographics.currentTechStack.join(', ') : profileObj.technographics.currentTechStack}\n`;
         }
-        if (profile.technographics.integrationRequirements) {
-          result += `- **Integration Requirements:** ${Array.isArray(profile.technographics.integrationRequirements) ? profile.technographics.integrationRequirements.join(', ') : profile.technographics.integrationRequirements}\n`;
+        if (profileObj.technographics.integrationRequirements) {
+          result += `- **Integration Requirements:** ${Array.isArray(profileObj.technographics.integrationRequirements) ? profileObj.technographics.integrationRequirements.join(', ') : profileObj.technographics.integrationRequirements}\n`;
         }
         result += '\n';
       }
       
-      if (profile.psychographics) {
+      if (profileObj.psychographics) {
         result += `#### 🧠 Psychographics\n`;
-        if (profile.psychographics.painPoints) {
-          result += `- **Pain Points:** ${Array.isArray(profile.psychographics.painPoints) ? profile.psychographics.painPoints.join(', ') : profile.psychographics.painPoints}\n`;
+        if (profileObj.psychographics.painPoints) {
+          result += `- **Pain Points:** ${Array.isArray(profileObj.psychographics.painPoints) ? profileObj.psychographics.painPoints.join(', ') : profileObj.psychographics.painPoints}\n`;
         }
-        if (profile.psychographics.buyingTriggers) {
-          result += `- **Buying Triggers:** ${Array.isArray(profile.psychographics.buyingTriggers) ? profile.psychographics.buyingTriggers.join(', ') : profile.psychographics.buyingTriggers}\n`;
+        if (profileObj.psychographics.buyingTriggers) {
+          result += `- **Buying Triggers:** ${Array.isArray(profileObj.psychographics.buyingTriggers) ? profileObj.psychographics.buyingTriggers.join(', ') : profileObj.psychographics.buyingTriggers}\n`;
         }
-        result += `- **Decision-Making Process:** ${profile.psychographics.decisionMakingProcess || 'Not specified'}\n`;
-        result += `- **Budget Allocation:** ${profile.psychographics.budgetAllocation || 'Not specified'}\n\n`;
+        result += `- **Decision-Making Process:** ${profileObj.psychographics.decisionMakingProcess || 'Not specified'}\n`;
+        result += `- **Budget Allocation:** ${profileObj.psychographics.budgetAllocation || 'Not specified'}\n\n`;
       }
       
-      if (profile.targetCompanies && Array.isArray(profile.targetCompanies)) {
+      if (profileObj.targetCompanies && Array.isArray(profileObj.targetCompanies)) {
         result += `#### 🎯 Target Companies\n`;
-        profile.targetCompanies.forEach((company: any, companyIndex: number) => {
-          result += `${companyIndex + 1}. **${company.name || 'Unknown Company'}** (${company.domain || 'No domain'})\n`;
-          result += `   - Industry: ${company.industry || 'Not specified'}\n`;
-          result += `   - Size: ${company.size || 'Not specified'}\n`;
-          result += `   - Location: ${company.location || 'Not specified'}\n`;
-          result += `   - Reasoning: ${company.reasoning || 'Not specified'}\n\n`;
+        profileObj.targetCompanies.forEach((company: unknown, companyIndex: number) => {
+          const companyObj = company as { name?: string; domain?: string; industry?: string; size?: string; location?: string; reasoning?: string };
+          result += `${companyIndex + 1}. **${companyObj.name || 'Unknown Company'}** (${companyObj.domain || 'No domain'})\n`;
+          result += `   - Industry: ${companyObj.industry || 'Not specified'}\n`;
+          result += `   - Size: ${companyObj.size || 'Not specified'}\n`;
+          result += `   - Location: ${companyObj.location || 'Not specified'}\n`;
+          result += `   - Reasoning: ${companyObj.reasoning || 'Not specified'}\n\n`;
         });
       }
       
-      if (profile.validation) {
+      if (profileObj.validation) {
         result += `#### ✅ Validation\n`;
-        result += `- **Market Size:** ${profile.validation.marketSize || 'Not specified'}\n`;
-        result += `- **Competition Level:** ${profile.validation.competitionLevel || 'Not specified'}\n`;
-        result += `- **Sales Velocity:** ${profile.validation.salesVelocity || 'Not specified'}\n`;
-        result += `- **Revenue Potential:** ${profile.validation.revenuePotential || 'Not specified'}\n`;
-        result += `- **Confidence:** ${profile.validation.confidence || 'Not specified'}\n\n`;
+        result += `- **Market Size:** ${profileObj.validation.marketSize || 'Not specified'}\n`;
+        result += `- **Competition Level:** ${profileObj.validation.competitionLevel || 'Not specified'}\n`;
+        result += `- **Sales Velocity:** ${profileObj.validation.salesVelocity || 'Not specified'}\n`;
+        result += `- **Revenue Potential:** ${profileObj.validation.revenuePotential || 'Not specified'}\n`;
+        result += `- **Confidence:** ${profileObj.validation.confidence || 'Not specified'}\n\n`;
       }
       
-      if (profile.insights) {
+      if (profileObj.insights) {
         result += `#### 💡 Key Insights\n`;
-        if (profile.insights.keyDifferentiators) {
-          result += `- **Key Differentiators:** ${Array.isArray(profile.insights.keyDifferentiators) ? profile.insights.keyDifferentiators.join(', ') : profile.insights.keyDifferentiators}\n`;
+        if (profileObj.insights.keyDifferentiators) {
+          result += `- **Key Differentiators:** ${Array.isArray(profileObj.insights.keyDifferentiators) ? profileObj.insights.keyDifferentiators.join(', ') : profileObj.insights.keyDifferentiators}\n`;
         }
-        if (profile.insights.messagingResonance) {
-          result += `- **Messaging Resonance:** ${Array.isArray(profile.insights.messagingResonance) ? profile.insights.messagingResonance.join(', ') : profile.insights.messagingResonance}\n`;
+        if (profileObj.insights.messagingResonance) {
+          result += `- **Messaging Resonance:** ${Array.isArray(profileObj.insights.messagingResonance) ? profileObj.insights.messagingResonance.join(', ') : profileObj.insights.messagingResonance}\n`;
         }
-        if (profile.insights.valuePropositions) {
-          result += `- **Value Propositions:** ${Array.isArray(profile.insights.valuePropositions) ? profile.insights.valuePropositions.join(', ') : profile.insights.valuePropositions}\n`;
+        if (profileObj.insights.valuePropositions) {
+          result += `- **Value Propositions:** ${Array.isArray(profileObj.insights.valuePropositions) ? profileObj.insights.valuePropositions.join(', ') : profileObj.insights.valuePropositions}\n`;
         }
-        if (profile.insights.commonObjections) {
-          result += `- **Common Objections:** ${Array.isArray(profile.insights.commonObjections) ? profile.insights.commonObjections.join(', ') : profile.insights.commonObjections}\n`;
+        if (profileObj.insights.commonObjections) {
+          result += `- **Common Objections:** ${Array.isArray(profileObj.insights.commonObjections) ? profileObj.insights.commonObjections.join(', ') : profileObj.insights.commonObjections}\n`;
         }
-        if (profile.insights.outreachStrategy) {
-          result += `- **Outreach Strategy:** ${Array.isArray(profile.insights.outreachStrategy) ? profile.insights.outreachStrategy.join(', ') : profile.insights.outreachStrategy}\n`;
+        if (profileObj.insights.outreachStrategy) {
+          result += `- **Outreach Strategy:** ${Array.isArray(profileObj.insights.outreachStrategy) ? profileObj.insights.outreachStrategy.join(', ') : profileObj.insights.outreachStrategy}\n`;
         }
         result += '\n';
       }

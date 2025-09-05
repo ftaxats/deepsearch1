@@ -4,7 +4,7 @@ export interface AgentMessage {
   from: string;
   to: string;
   type: 'request' | 'response' | 'error' | 'status';
-  payload: any;
+  payload: unknown;
   timestamp: Date;
   priority: 'low' | 'medium' | 'high' | 'critical';
 }
@@ -14,8 +14,8 @@ export interface AgentTask {
   agentId: string;
   type: string;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
-  input: any;
-  output?: any;
+  input: unknown;
+  output?: unknown;
   error?: string;
   createdAt: Date;
   completedAt?: Date;
@@ -373,7 +373,7 @@ export interface AgentEvent {
   type: 'agent-started' | 'agent-completed' | 'agent-error' | 'data-shared' | 'task-assigned' | 'task-completed';
   agentId: string;
   timestamp: Date;
-  data?: any;
+  data?: unknown;
   message?: string;
 }
 

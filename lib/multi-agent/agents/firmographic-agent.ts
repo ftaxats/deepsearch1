@@ -120,7 +120,7 @@ Always provide structured, quantifiable data with clear categorizations and exam
     }
   }
 
-  private extractFirmographicContent(sources: any[]): string[] {
+  private extractFirmographicContent(sources: unknown[]): string[] {
     const firmographicKeywords = [
       'company', 'business', 'organization', 'enterprise', 'startup',
       'employees', 'staff', 'team size', 'headcount', 'workforce',
@@ -304,27 +304,27 @@ Extract and analyze industry segments and create industry profiles.`)
   }
 
   // Fallback text parsing methods
-  private extractCompanySizeProfilesFromText(text: string): CompanySizeProfile[] {
+  private extractCompanySizeProfilesFromText(_text: string): CompanySizeProfile[] {
     // Implement text parsing logic for company size profiles
     return [];
   }
 
-  private extractRevenueRangesFromText(text: string): RevenueRange[] {
+  private extractRevenueRangesFromText(_text: string): RevenueRange[] {
     // Implement text parsing logic for revenue ranges
     return [];
   }
 
-  private extractFundingStagesFromText(text: string): FundingStage[] {
+  private extractFundingStagesFromText(_text: string): FundingStage[] {
     // Implement text parsing logic for funding stages
     return [];
   }
 
-  private extractGeographicProfilesFromText(text: string): GeographicProfile[] {
+  private extractGeographicProfilesFromText(_text: string): GeographicProfile[] {
     // Implement text parsing logic for geographic profiles
     return [];
   }
 
-  private extractIndustrySegmentsFromText(text: string): IndustrySegment[] {
+  private extractIndustrySegmentsFromText(_text: string): IndustrySegment[] {
     // Implement text parsing logic for industry segments
     return [];
   }

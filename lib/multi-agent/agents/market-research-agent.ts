@@ -152,7 +152,7 @@ Always provide data-driven insights with proper sourcing and confidence levels.`
     }
   }
 
-  private extractMarketContent(sources: any[]): string[] {
+  private extractMarketContent(sources: unknown[]): string[] {
     const marketKeywords = [
       'market', 'industry', 'trend', 'growth', 'competition', 'competitive',
       'market size', 'TAM', 'SAM', 'SOM', 'revenue', 'forecast',
@@ -336,12 +336,12 @@ Analyze the regulatory environment and identify key regulations.`)
   }
 
   // Fallback text parsing methods
-  private extractIndustryTrendsFromText(text: string): IndustryTrend[] {
+  private extractIndustryTrendsFromText(_text: string): IndustryTrend[] {
     // Implement text parsing logic for industry trends
     return [];
   }
 
-  private extractMarketSizeFromText(text: string): MarketSizeData {
+  private extractMarketSizeFromText(_text: string): MarketSizeData {
     // Implement text parsing logic for market size
     return {
       tam: 'Not available',
@@ -352,17 +352,17 @@ Analyze the regulatory environment and identify key regulations.`)
     };
   }
 
-  private extractCompetitiveDataFromText(text: string): CompetitiveData[] {
+  private extractCompetitiveDataFromText(_text: string): CompetitiveData[] {
     // Implement text parsing logic for competitive data
     return [];
   }
 
-  private extractGrowthRatesFromText(text: string): GrowthRate[] {
+  private extractGrowthRatesFromText(_text: string): GrowthRate[] {
     // Implement text parsing logic for growth rates
     return [];
   }
 
-  private extractRegulatoryInfoFromText(text: string): RegulatoryInfo[] {
+  private extractRegulatoryInfoFromText(_text: string): RegulatoryInfo[] {
     // Implement text parsing logic for regulatory info
     return [];
   }

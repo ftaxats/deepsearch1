@@ -144,7 +144,7 @@ Always provide structured, actionable insights that can be used for ICP developm
     }
   }
 
-  private extractCustomerContent(sources: any[]): string[] {
+  private extractCustomerContent(sources: unknown[]): string[] {
     const customerKeywords = [
       'customer', 'client', 'case study', 'testimonial', 'success story',
       'implementation', 'results', 'outcome', 'ROI', 'benefits',
@@ -264,7 +264,7 @@ Map the customer journey and format as structured data.`)
     testimonials: CustomerTestimonial[],
     successStories: SuccessStory[]
   ): Promise<CustomerPattern[]> {
-    const allData = [...caseStudies, ...testimonials, ...successStories];
+    // const allData = [...caseStudies, ...testimonials, ...successStories];
     
     const messages = [
       new SystemMessage(`${this.getSystemPrompt()}
@@ -338,27 +338,27 @@ Identify common patterns and characteristics.`)
   }
 
   // Fallback text parsing methods
-  private extractCaseStudiesFromText(text: string): CustomerCaseStudy[] {
+  private extractCaseStudiesFromText(_text: string): CustomerCaseStudy[] {
     // Implement text parsing logic for case studies
     return [];
   }
 
-  private extractTestimonialsFromText(text: string): CustomerTestimonial[] {
+  private extractTestimonialsFromText(_text: string): CustomerTestimonial[] {
     // Implement text parsing logic for testimonials
     return [];
   }
 
-  private extractSuccessStoriesFromText(text: string): SuccessStory[] {
+  private extractSuccessStoriesFromText(_text: string): SuccessStory[] {
     // Implement text parsing logic for success stories
     return [];
   }
 
-  private extractCustomerJourneyFromText(text: string): CustomerJourneyStep[] {
+  private extractCustomerJourneyFromText(_text: string): CustomerJourneyStep[] {
     // Implement text parsing logic for customer journey
     return [];
   }
 
-  private extractCustomerPatternsFromText(text: string): CustomerPattern[] {
+  private extractCustomerPatternsFromText(_text: string): CustomerPattern[] {
     // Implement text parsing logic for customer patterns
     return [];
   }

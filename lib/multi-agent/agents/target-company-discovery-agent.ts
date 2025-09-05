@@ -98,44 +98,47 @@ Always provide real, verifiable companies with specific reasoning for why they f
   }
 
   private extractICPCriteria(
-    customerIntelligence: any,
-    marketResearch: any,
-    firmographicData: any
-  ): Record<string, any> {
-    const criteria: Record<string, any> = {};
+    customerIntelligence: unknown,
+    marketResearch: unknown,
+    firmographicData: unknown
+  ): Record<string, unknown> {
+    const criteria: Record<string, unknown> = {};
 
     // Extract from customer intelligence
     if (customerIntelligence?.patterns) {
       criteria.industryPatterns = customerIntelligence.patterns
-        .filter((p: any) => p.characteristic.includes('industry'))
-        .map((p: any) => p.examples);
+        .filter((p: unknown) => (p as { characteristic: string }).characteristic.includes('industry'))
+        .map((p: unknown) => (p as { examples: unknown }).examples);
       
       criteria.sizePatterns = customerIntelligence.patterns
-        .filter((p: any) => p.characteristic.includes('size') || p.characteristic.includes('employee'))
-        .map((p: any) => p.examples);
+        .filter((p: unknown) => {
+          const pattern = p as { characteristic: string };
+          return pattern.characteristic.includes('size') || pattern.characteristic.includes('employee');
+        })
+        .map((p: unknown) => (p as { examples: unknown }).examples);
     }
 
     // Extract from market research
     if (marketResearch?.industryTrends) {
       criteria.targetIndustries = marketResearch.industryTrends
-        .map((trend: any) => trend.trend)
+        .map((trend: unknown) => (trend as { trend: string }).trend)
         .filter((trend: string) => trend.includes('industry') || trend.includes('sector'));
     }
 
     // Extract from firmographic data
     if (firmographicData?.companySizes) {
       criteria.sizeRanges = firmographicData.companySizes
-        .map((size: any) => size.range);
+        .map((size: unknown) => (size as { range: string }).range);
     }
 
     if (firmographicData?.industrySegments) {
       criteria.industrySegments = firmographicData.industrySegments
-        .map((segment: any) => segment.segment);
+        .map((segment: unknown) => (segment as { segment: string }).segment);
     }
 
     if (firmographicData?.geographicData) {
       criteria.targetRegions = firmographicData.geographicData
-        .map((geo: any) => geo.region);
+        .map((geo: unknown) => (geo as { region: string }).region);
     }
 
     return criteria;
@@ -169,7 +172,7 @@ Discover 15-20 specific target companies that match these criteria. Provide real
     return this.parseTargetCompanies(response);
   }
 
-  private async validateCompanies(companies: TargetCompany[], criteria: Record<string, any>): Promise<CompanyValidation[]> {
+  private async validateCompanies(companies: TargetCompany[], criteria: Record<string, unknown>): Promise<CompanyValidation[]> {
     const messages = [
       new SystemMessage(`${this.getSystemPrompt()}
 
@@ -193,7 +196,7 @@ Validate each company and provide detailed reasoning.`)
     return this.parseCompanyValidations(response);
   }
 
-  private async createMarketMaps(companies: TargetCompany[], criteria: Record<string, any>): Promise<MarketMap[]> {
+  private async createMarketMaps(companies: TargetCompany[], criteria: Record<string, unknown>): Promise<MarketMap[]> {
     const messages = [
       new SystemMessage(`${this.getSystemPrompt()}
 
@@ -247,17 +250,17 @@ Create market maps and segment the companies logically.`)
   }
 
   // Fallback text parsing methods
-  private extractTargetCompaniesFromText(text: string): TargetCompany[] {
+  private extractTargetCompaniesFromText(_text: string): TargetCompany[] {
     // Implement text parsing logic for target companies
     return [];
   }
 
-  private extractCompanyValidationsFromText(text: string): CompanyValidation[] {
+  private extractCompanyValidationsFromText(_text: string): CompanyValidation[] {
     // Implement text parsing logic for company validations
     return [];
   }
 
-  private extractMarketMapsFromText(text: string): MarketMap[] {
+  private extractMarketMapsFromText(_text: string): MarketMap[] {
     // Implement text parsing logic for market maps
     return [];
   }

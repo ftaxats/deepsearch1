@@ -23,7 +23,6 @@ import {
 } from './agents/icp-synthesis-agent';
 import { 
   MultiAgentConfig, 
-  CombinedResearchData, 
   ICPProfile, 
   AgentEvent 
 } from './types';
@@ -88,7 +87,7 @@ export class MultiAgentICPEngine {
    */
   async analyzeICP(
     query: string,
-    sources: any[],
+    sources: unknown[],
     onProgress?: (event: AgentEvent) => void
   ): Promise<ICPProfile[]> {
     try {
@@ -126,7 +125,7 @@ export class MultiAgentICPEngine {
    */
   async analyzeICPWithStreaming(
     query: string,
-    sources: any[],
+    sources: unknown[],
     onChunk: (chunk: string) => void,
     onProgress?: (event: AgentEvent) => void
   ): Promise<ICPProfile[]> {
@@ -189,7 +188,7 @@ export class MultiAgentICPEngine {
   /**
    * Get specific agent information
    */
-  getAgentInfo(agentId: string): any {
+  getAgentInfo(agentId: string): unknown {
     const agent = this.agentHub.getAgent(agentId);
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
@@ -200,7 +199,7 @@ export class MultiAgentICPEngine {
   /**
    * Get agent capabilities
    */
-  getAgentCapabilities(agentId: string): any[] {
+  getAgentCapabilities(agentId: string): unknown[] {
     const agent = this.agentHub.getAgent(agentId);
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
@@ -211,7 +210,7 @@ export class MultiAgentICPEngine {
   /**
    * Wait for a specific task to complete
    */
-  private async waitForTaskCompletion(taskId: string, timeout: number = 120000): Promise<any> {
+  private async waitForTaskCompletion(taskId: string, timeout: number = 120000): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
       

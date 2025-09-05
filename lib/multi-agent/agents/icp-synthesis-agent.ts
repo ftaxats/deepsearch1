@@ -4,13 +4,7 @@ import { BaseAgent } from '../base-agent';
 import { 
   AgentTask, 
   CombinedResearchData,
-  ICPProfile,
-  ICPCharacteristics,
-  ICPFirmographics,
-  ICPTechnographics,
-  ICPPsychographics,
-  ICPValidation,
-  ICPInsights
+  ICPProfile
 } from '../types';
 
 export class ICPSynthesisAgent extends BaseAgent {
@@ -247,17 +241,17 @@ Generate actionable insights and recommendations for each ICP profile.`)
   }
 
   // Fallback text parsing methods
-  private extractICPProfilesFromText(text: string): ICPProfile[] {
+  private extractICPProfilesFromText(_text: string): ICPProfile[] {
     // Implement text parsing logic for ICP profiles
     return [];
   }
 
-  private extractValidatedProfilesFromText(text: string): ICPProfile[] {
+  private extractValidatedProfilesFromText(_text: string): ICPProfile[] {
     // Implement text parsing logic for validated profiles
     return [];
   }
 
-  private extractProfilesWithInsightsFromText(text: string): ICPProfile[] {
+  private extractProfilesWithInsightsFromText(_text: string): ICPProfile[] {
     // Implement text parsing logic for profiles with insights
     return [];
   }

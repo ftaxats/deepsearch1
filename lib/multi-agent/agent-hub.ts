@@ -97,7 +97,7 @@ export class AgentHub {
   // Coordinate multi-agent ICP analysis
   public async coordinateICPAnalysis(
     query: string,
-    initialSources: any[],
+    initialSources: unknown[],
     onProgress?: (event: AgentEvent) => void
   ): Promise<CombinedResearchData> {
     if (onProgress) {
@@ -298,7 +298,7 @@ export class AgentHub {
   }
 
   // Select the best agent for a task based on priority and workload
-  private selectBestAgent(agents: Agent[], priority: number): Agent {
+  private selectBestAgent(agents: Agent[], _priority: number): Agent {
     // Sort by status (idle agents first) and then by current workload
     const sortedAgents = agents.sort((a, b) => {
       if (a.status === 'idle' && b.status !== 'idle') return -1;
@@ -310,7 +310,7 @@ export class AgentHub {
   }
 
   // Wait for a specific task to complete
-  private async waitForTask(taskId: string, timeout: number = 30000): Promise<any> {
+  private async waitForTask(taskId: string, timeout: number = 30000): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
       
@@ -332,8 +332,8 @@ export class AgentHub {
   }
 
   // Wait for multiple tasks to complete
-  private async waitForTasks(taskIds: string[], timeout: number = 60000): Promise<Record<string, any>> {
-    const results: Record<string, any> = {};
+  private async waitForTasks(taskIds: string[], timeout: number = 60000): Promise<Record<string, unknown>> {
+    const results: Record<string, unknown> = {};
     
     const promises = taskIds.map(async (taskId) => {
       const result = await this.waitForTask(taskId, timeout);
@@ -345,10 +345,10 @@ export class AgentHub {
   }
 
   // Calculate overall confidence based on individual agent results
-  private calculateOverallConfidence(data: Record<string, any>): number {
+  private calculateOverallConfidence(data: Record<string, unknown>): number {
     const confidences = Object.values(data)
       .filter(item => item && typeof item === 'object' && 'confidence' in item)
-      .map(item => (item as any).confidence)
+      .map(item => (item as { confidence: unknown }).confidence)
       .filter(conf => typeof conf === 'number');
 
     if (confidences.length === 0) return 0.5;

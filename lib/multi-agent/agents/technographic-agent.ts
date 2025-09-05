@@ -108,7 +108,7 @@ Always provide structured, actionable insights about technology usage and requir
     }
   }
 
-  private extractTechnographicContent(sources: any[]): string[] {
+  private extractTechnographicContent(sources: unknown[]): string[] {
     const technographicKeywords = [
       'technology', 'tech stack', 'software', 'platform', 'tool',
       'integration', 'API', 'connectivity', 'system', 'infrastructure',
@@ -259,22 +259,22 @@ Extract and analyze platform requirements and create requirement profiles.`)
   }
 
   // Fallback text parsing methods
-  private extractTechStacksFromText(text: string): TechStack[] {
+  private extractTechStacksFromText(_text: string): TechStack[] {
     // Implement text parsing logic for tech stacks
     return [];
   }
 
-  private extractIntegrationsFromText(text: string): Integration[] {
+  private extractIntegrationsFromText(_text: string): Integration[] {
     // Implement text parsing logic for integrations
     return [];
   }
 
-  private extractDigitalMaturityLevelsFromText(text: string): DigitalMaturityLevel[] {
+  private extractDigitalMaturityLevelsFromText(_text: string): DigitalMaturityLevel[] {
     // Implement text parsing logic for digital maturity levels
     return [];
   }
 
-  private extractPlatformRequirementsFromText(text: string): PlatformRequirement[] {
+  private extractPlatformRequirementsFromText(_text: string): PlatformRequirement[] {
     // Implement text parsing logic for platform requirements
     return [];
   }
